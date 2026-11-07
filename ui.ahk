@@ -1,8 +1,8 @@
 ; ALIA.UI.LIB
 
-class EasyUI {
+class AliaUI {
     __New(opts := "") {
-        EUI_Init(opts)
+        AUI_Init(opts)
     }
 
     Tab(n, title, icon := "") {
@@ -19,21 +19,21 @@ class EasyUI {
     }
 
     OnEvent(fn) {
-        global EUI_Handler
-        EUI_Handler := IsObject(fn) ? fn : Func(fn)
+        global AUI_Handler
+        AUI_Handler := IsObject(fn) ? fn : Func(fn)
     }
 
     OnRing(fn) {
-        global EUI_RingHandler
-        EUI_RingHandler := IsObject(fn) ? fn : Func(fn)
+        global AUI_RingHandler
+        AUI_RingHandler := IsObject(fn) ? fn : Func(fn)
     }
 
     AddIcon(name, data) {
-        EUI_AddIcon(name, data)
+        AUI_AddIcon(name, data)
     }
 
     Start() {
-        EUI_Start()
+        AUI_Start()
     }
 
     Find(key) {
@@ -92,7 +92,7 @@ class EasyUI {
     }
 }
 
-EUI_Init(opts := "") {
+AUI_Init(opts := "") {
     global
     local k, v, allowed, acc, tk
 
@@ -179,8 +179,8 @@ EUI_Init(opts := "") {
     blinkOn := 1
     colMul := 1
     needDraw := false
-    EUI_Handler := ""
-    EUI_RingHandler := ""
+    AUI_Handler := ""
+    AUI_RingHandler := ""
 
     CoordMode, Mouse, Screen
     SetBatchLines, -1
@@ -216,7 +216,7 @@ EUI_Init(opts := "") {
     BuildSettingsTab(tk, acc)
 }
 
-EUI_Start() {
+AUI_Start() {
     global
     Loop, 6 {
         if (!IsObject(tabUI[A_Index]))
@@ -230,10 +230,10 @@ EUI_Start() {
     SetTimer, BindPoll, 15
 }
 
-EUI_AddIcon(name, data) {
-    global EUI_UserIcons
-    if (!IsObject(EUI_UserIcons))
-        EUI_UserIcons := {}
+AUI_AddIcon(name, data) {
+    global AUI_UserIcons
+    if (!IsObject(AUI_UserIcons))
+        AUI_UserIcons := {}
     arr := []
     for i, tok in StrSplit(data, " ") {
         if (tok = "")
@@ -249,7 +249,7 @@ EUI_AddIcon(name, data) {
         else
             arr.Push(tok + 0)
     }
-    EUI_UserIcons[name] := arr
+    AUI_UserIcons[name] := arr
 }
 
 $Esc::
@@ -529,10 +529,10 @@ CloseTab() {
 }
 
 RingAction(n) {
-    global EUI_RingHandler
+    global AUI_RingHandler
     OpenTab(n)
-    if (IsObject(EUI_RingHandler))
-        EUI_RingHandler.Call(n)
+    if (IsObject(AUI_RingHandler))
+        AUI_RingHandler.Call(n)
 }
 
 HitTest(mx, my) {
@@ -777,9 +777,9 @@ DrawEl(el, idx) {
 
 IconData(name) {
     static icons
-    global EUI_UserIcons
-    if (IsObject(EUI_UserIcons) && EUI_UserIcons.HasKey(name))
-        return EUI_UserIcons[name]
+    global AUI_UserIcons
+    if (IsObject(AUI_UserIcons) && AUI_UserIcons.HasKey(name))
+        return AUI_UserIcons[name]
     if (!IsObject(icons)) {
         icons := {}
         for bi, block in LucideIcons() {
@@ -1023,7 +1023,7 @@ BuildSettingsTab(toggleKey, accent) {
 }
 
 UIEvent(key, value, extra) {
-    global FADE_STEP, EUI_Handler
+    global FADE_STEP, AUI_Handler
     if (key = "uiaccent") {
         SetAccent(value)
     } else if (key = "uiaccent_alpha") {
@@ -1035,8 +1035,8 @@ UIEvent(key, value, extra) {
     } else if (key = "exit") {
         ExitApp
     }
-    if (IsObject(EUI_Handler))
-        EUI_Handler.Call(key, value, extra)
+    if (IsObject(AUI_Handler))
+        AUI_Handler.Call(key, value, extra)
 }
 
 UIAdd(n, el) {
