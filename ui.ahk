@@ -91,7 +91,7 @@ class EasyUI {
         ExitApp
     }
 }
-tab panel size
+
 EUI_Init(opts := "") {
     global
     local k, v, allowed, acc, tk
