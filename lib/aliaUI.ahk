@@ -712,7 +712,8 @@ SearchFeatureChanged(text) {
     SearchFeatureAdd(matches, "Camlock", 5, text)
     SearchFeatureAdd(matches, "Settings", 6, text)
     if (matches.MaxIndex() = 1) {
-        GuiControl, UI:, AUI_SearchHint, Opening % matches[1].name
+        openingHint := "Opening " . matches[1].name
+        GuiControl, UI:, AUI_SearchHint, %openingHint%
         OpenTab(matches[1].tab)
         return
     }
