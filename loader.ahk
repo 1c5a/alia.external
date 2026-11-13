@@ -24,7 +24,7 @@ if bootstrap {
 }
 
 accent := LoaderAccent(configFile)
-loaderUi := new AliaUI({TAB_W: 620, TAB_H: 300, Accent: accent, ToggleKey: "None"})
+loaderUi := new AliaUI({TAB_W: 620, TAB_H: 300, Accent: accent, ToggleKey: "None", StartVisible: true})
 loaderUi.Tab(1, "Updater", "download")
 loaderUi.Add(1, {type: "header", label: "esp.ahk updater"})
 loaderUi.Add(1, {type: "label", key: "loaderstatus", label: "Checking for updates..."})

@@ -142,7 +142,7 @@ class AliaUI {
 
 AUI_Init(opts := "") {
     global
-    local k, v, allowed, acc, tk
+    local k, v, allowed, acc, tk, startVisible
 
     OUTER_R := 300
     HOLE_R := 140
@@ -162,7 +162,8 @@ AUI_Init(opts := "") {
 
     acc := 0xFF69B4
     tk := "F8"
-    allowed := " OUTER_R HOLE_R EXPAND LINE_W GAP CORNER_R PENT_R PENT_EXP PENT_COR EASE TAB_W TAB_H FADE_STEP TAB_COR TITLE_H "
+    startVisible := false
+    allowed := " OUTER_R HOLE_R EXPAND LINE_W GAP CORNER_R PENT_R PENT_EXP PENT_COR EASE TAB_W TAB_H FADE_STEP TAB_COR TITLE_H StartVisible "
     if (IsObject(opts)) {
         for k, v in opts {
             if (k = "Accent")
@@ -178,16 +179,16 @@ AUI_Init(opts := "") {
     RX := (A_ScreenWidth - RSIZE) // 2
     RY := (A_ScreenHeight - RSIZE) // 2
     hover := 0
-    visible := true
-    uiA := 1
-    uiTarget := 1
+    visible := startVisible ? true : false
+    uiA := startVisible ? 1 : 0
+    uiTarget := startVisible ? 1 : 0
     ACC_A := 1
     UI_ALPHA := 230
     BLUR_ON := 1
     anim := [0, 0, 0, 0, 0, 0]
 
     mode := "ring"
-    ringA := 1
+    ringA := startVisible ? 1 : 0
     tabA := 0
     activeTab := 0
     tabTitle := ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Settings"]
@@ -262,12 +263,18 @@ AUI_Init(opts := "") {
     Gui, UI:Add, Text, x%tailX% y28 w18 h22 vAUI_SearchTail +BackgroundTrans +E0x20, /
     Gui, UI:Font, s10 cFFFFFF, Segoe UI
     Gui, UI:Add, Text, x%searchX% y48 w440 h22 vAUI_SearchHint +BackgroundTrans +E0x20 c90909C Center,
-    Gui, UI:Show, x0 y0 w%A_ScreenWidth% h%A_ScreenHeight%
+    if (startVisible)
+        Gui, UI:Show, x0 y0 w%A_ScreenWidth% h%A_ScreenHeight%
+    else
+        Gui, UI:Hide
     EnableBlur(UIHwnd, 3)
     WinSet, Transparent, % UI_ALPHA, ahk_id %UIHwnd%
 
     Gui, Ring:+AlwaysOnTop -Caption +ToolWindow +E0x80000 +OwnerUI +HwndhRing
-    Gui, Ring:Show, x%RX% y%RY% w%RSIZE% h%RSIZE% NA
+    if (startVisible)
+        Gui, Ring:Show, x%RX% y%RY% w%RSIZE% h%RSIZE% NA
+    else
+        Gui, Ring:Hide
 
     DllCall("LoadLibrary", "Str", "gdiplus")
     VarSetCapacity(si, A_PtrSize = 8 ? 24 : 16, 0)
