@@ -1,0 +1,4 @@
+SetStatus(txt) {
+    Tip(txt)
+}
+
