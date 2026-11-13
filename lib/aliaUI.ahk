@@ -144,18 +144,18 @@ AUI_Init(opts := "") {
     global
     local k, v, allowed, acc, tk
 
-    OUTER_R := 230
-    HOLE_R := 110
-    EXPAND := 16
+    OUTER_R := 300
+    HOLE_R := 140
+    EXPAND := 22
     LINE_W := 3
     GAP := 4
     CORNER_R := 40
-    PENT_R := 88
-    PENT_EXP := 8
+    PENT_R := 116
+    PENT_EXP := 12
     PENT_COR := 40
     EASE := 0.22
-    TAB_W := 600
-    TAB_H := 440
+    TAB_W := 700
+    TAB_H := 520
     FADE_STEP := 0.2
     TAB_COR := 32
     TITLE_H := 40
@@ -244,12 +244,16 @@ AUI_Init(opts := "") {
     needDraw := false
     AUI_Handler := ""
     AUI_RingHandler := ""
+    AUI_SearchText := ""
 
     CoordMode, Mouse, Screen
     SetBatchLines, -1
 
     Gui, UI:+AlwaysOnTop -Caption +ToolWindow +HwndUIHwnd
     Gui, UI:Color, 000000
+    Gui, UI:Font, s10 cFFFFFF, Segoe UI
+    searchX := (A_ScreenWidth - 440) // 2
+    Gui, UI:Add, Edit, x%searchX% y18 w440 h30 vAUI_SearchEdit gAUI_SearchChanged Background20202A cFFFFFF, Search features...
     Gui, UI:Show, x0 y0 w%A_ScreenWidth% h%A_ScreenHeight%
     EnableBlur(UIHwnd, 3)
     WinSet, Transparent, % UI_ALPHA, ahk_id %UIHwnd%
@@ -559,6 +563,11 @@ AUI_DialogPoll:
     AUI_TopDialogs()
 return
 
+AUI_SearchChanged:
+    GuiControlGet, searchText, UI:, AUI_SearchEdit
+    SearchFeatureChanged(searchText)
+return
+
 RingClick(wParam, lParam, msg, hwnd) {
     global hRing, UIHwnd, hover, mode, tabUI, activeTab, listenEl, pickEl, pickOpen, dragCh, editField, uiTarget, inputEl, ddOpen, ddEl
     if (hwnd != hRing && hwnd != UIHwnd)
@@ -642,6 +651,7 @@ OpenTab(n) {
     activeTab := n
     scrollY := 0
     scrollT := 0
+    GuiControl, UI:Hide, AUI_SearchEdit
     DepSnap(n)
     mode := "tabin"
 }
@@ -657,6 +667,26 @@ CloseTab() {
     listenEl := 0
     dragCh := 0
     mode := "ringin"
+    GuiControl, UI:Show, AUI_SearchEdit
+}
+
+SearchFeatureChanged(text) {
+    text := Trim(text)
+    if (text = "" || text = "Search features...")
+        return
+    if RegExMatch(text, "i)^(player ?esp|mob ?esp)$", m)
+        tab := 1
+    else if RegExMatch(text, "i)^(gank|ping|webhook)$")
+        tab := 2
+    else if RegExMatch(text, "i)^(debug|offsets)$")
+        tab := 4
+    else if RegExMatch(text, "i)^(walk|walkspeed|spectate|camlock)$")
+        tab := 5
+    else if RegExMatch(text, "i)^(settings|ui)$")
+        tab := 6
+    else
+        return
+    OpenTab(tab)
 }
 
 RingAction(n) {
