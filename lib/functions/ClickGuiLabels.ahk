@@ -26,8 +26,15 @@ ClickGUI_Debug:
     OpenFeatureConfig(4)
 return
 
+ClickGUI_Settings:
+    OpenFeatureConfig(6)
+return
+
 ClickGUI_Close:
 ClickGUIGuiClose:
     Gui, ClickGUI:Hide
     clickGuiOn := false
+    ui.Show()
+    CloseTab()
+    DrawRing()
 return
