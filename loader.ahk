@@ -28,7 +28,7 @@ loaderUi := new AliaUI({TAB_W: 620, TAB_H: 300, Accent: accent, ToggleKey: "None
 loaderUi.Tab(1, "Updater", "download")
 loaderUi.Add(1, {type: "header", label: "esp.ahk updater"})
 loaderUi.Add(1, {type: "label", key: "loaderstatus", label: "Checking for updates..."})
-loaderUi.Add(1, {type: "slider", key: "loaderprogress", label: "Download progress", lo: 0, hi: 100, step: 1, value: 0, suffix: "%"})
+loaderUi.Add(1, {type: "label", key: "loaderprogress", label: "Download progress: [                    ] 0%"})
 loaderUi.Add(1, {type: "button", key: "loaderlaunch", label: "Launch"})
 loaderUi.OnEvent(Func("LoaderEvent"))
 loaderUi.Start()
@@ -70,7 +70,14 @@ LoaderProgress(value) {
     global loaderUi
     if !IsObject(loaderUi)
         return
-    loaderUi.Set("loaderprogress", value)
+    value := Max(0, Min(100, Round(value)))
+    filled := Round(value / 5)
+    bar := ""
+    Loop, 20
+        bar .= (A_Index <= filled) ? "=" : " "
+    el := loaderUi.Find("loaderprogress")
+    if IsObject(el)
+        el.label := "Download progress: [" bar "] " value "%"
     loaderUi.Redraw()
 }
 
