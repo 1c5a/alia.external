@@ -6,7 +6,7 @@ DllCall("SetProcessDPIAware")
 ; ============================================================
 ; Alia UI library: fetched into .\lib on first run, then the script restarts
 ; ============================================================
-AUI_URL := "https://raw.githubusercontent.com/1c5a/alia.external/refs/heads/main/aliaUI.ahk"
+AUI_URL := "https://raw.githubusercontent.com/1c5a/alia.external/refs/heads/main/lib/aliaUI.ahk"
 AUI_MARKER := "ALIA.UI.LIB"
 AUI_FILE := A_ScriptDir "\lib\aliaUI.ahk"
 if (!FileExist(AUI_FILE)) {
@@ -116,6 +116,8 @@ camlockFovAlpha := 25
 camlockMaxDist := 1000
 camlockTarget := ""
 camlockHeadY := 1.5
+clickGuiOn := false
+hClickGui := 0
 streamProof := false
 TARGET_PART := "HumanoidRootPart"
 gameId := 0
@@ -241,226 +243,227 @@ if RegExMatch(exePath, "i)(version-[0-9a-f]+)", lm)
     localHash := lm1
 offsetsFile := robloxDir "\offsets.json"
 OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/offsets.json" : "https://offsets.imtheo.lol/offsets.json"
-fileVer := ""
-FileGetVersion, fileVer, %exePath%
+    fileVer := ""
+    FileGetVersion, fileVer, %exePath%
 
-flat := ""
-remoteVer := ""
-offsetNote := "built-in offsets"
-if FileExist(offsetsFile) {
-    FileRead, cachedRaw, %offsetsFile%
-    flat := JsonFlatten(cachedRaw)
-    remoteVer := GetDumpVersion(flat)
-}
-if !(IsObject(flat) && VersionMatches(remoteVer, localHash, fileVer)) {
-    fetchErr := ""
-    raw := FetchText(OFFSETS_URL, fetchErr)
-    if (raw != "") {
-        newFlat := JsonFlatten(raw)
-        if (CountInts(newFlat) >= 20) {
-            flat := newFlat
-            remoteVer := GetDumpVersion(flat)
-            f := FileOpen(offsetsFile, "w", "UTF-8-RAW")
-            f.Write(raw)
-            f.Close()
-        } else {
-            offsetNote := "unexpected response from site, using built-in offsets"
+    flat := ""
+    remoteVer := ""
+    offsetNote := "built-in offsets"
+    if FileExist(offsetsFile) {
+        FileRead, cachedRaw, %offsetsFile%
+        flat := JsonFlatten(cachedRaw)
+        remoteVer := GetDumpVersion(flat)
+    }
+    if !(IsObject(flat) && VersionMatches(remoteVer, localHash, fileVer)) {
+        fetchErr := ""
+        raw := FetchText(OFFSETS_URL, fetchErr)
+        if (raw != "") {
+            newFlat := JsonFlatten(raw)
+            if (CountInts(newFlat) >= 20) {
+                flat := newFlat
+                remoteVer := GetDumpVersion(flat)
+                f := FileOpen(offsetsFile, "w", "UTF-8-RAW")
+                f.Write(raw)
+                f.Close()
+            } else {
+                offsetNote := "unexpected response from site, using built-in offsets"
+            }
+        } else if !IsObject(flat) {
+            offsetNote := "fetch failed (" fetchErr "), using built-in offsets"
         }
-    } else if !IsObject(flat) {
-        offsetNote := "fetch failed (" fetchErr "), using built-in offsets"
     }
-}
-if (IsObject(flat) && !VersionMatches(remoteVer, localHash, fileVer)) {
-    askMsg := "The offsets dump is for:`n " (remoteVer != "" ? remoteVer : "(unknown)")
-    askMsg .= "`n`nYour Roblox is:`n " (localHash != "" ? localHash : "(not detected)")
-    askMsg .= "`n`nThe site may not have caught up with the latest update. Use them anyway?`n(No = built-in offsets)"
-    MsgBox, 0x24, esp.ahk, %askMsg%
-    IfMsgBox No
+    if (IsObject(flat) && !VersionMatches(remoteVer, localHash, fileVer)) {
+        askMsg := "The offsets dump is for:`n " (remoteVer != "" ? remoteVer : "(unknown)")
+        askMsg .= "`n`nYour Roblox is:`n " (localHash != "" ? localHash : "(not detected)")
+        askMsg .= "`n`nThe site may not have caught up with the latest update. Use them anyway?`n(No = built-in offsets)"
+        MsgBox, 0x24, esp.ahk, %askMsg%
+        IfMsgBox No
         flat := ""
-}
-if IsObject(flat) {
-    updated := 0
-    for _, pair in mapTable {
-        val := FindOffset(flat, pair[2])
-        if (val = "")
-            continue
-        vn := pair[1]
-        %vn% := val
-        updated++
     }
-    offsetNote := updated "/" mapTable.Length() " offsets from " (remoteVer != "" ? remoteVer : "dump")
-    if (off_TextLabel_Text < 0x10) {
-        for _, cand in ["GuiObject::Text", "TextButton::Text", "TextBox::Text", "UIText::Text", "TextLabel::ContentText", "GuiLabel::Text"] {
-            v2 := FindOffset(flat, cand)
-            if (v2 != "") {
-                off_TextLabel_Text := v2
-                break
+    if IsObject(flat) {
+        updated := 0
+        for _, pair in mapTable {
+            val := FindOffset(flat, pair[2])
+            if (val = "")
+                continue
+            vn := pair[1]
+            %vn% := val
+            updated++
+        }
+        offsetNote := updated "/" mapTable.Length() " offsets from " (remoteVer != "" ? remoteVer : "dump")
+        if (off_TextLabel_Text < 0x10) {
+            for _, cand in ["GuiObject::Text", "TextButton::Text", "TextBox::Text", "UIText::Text", "TextLabel::ContentText", "GuiLabel::Text"] {
+                v2 := FindOffset(flat, cand)
+                if (v2 != "") {
+                    off_TextLabel_Text := v2
+                    break
+                }
             }
         }
     }
-}
 
-dllBase := GetModuleBase(hProc, "RobloxPlayerBeta.exe")
-pFakeDM := ReadPtr(hProc, dllBase + static_FakeDM)
-pRealDM := ReadPtr(hProc, pFakeDM + off_FDM_RealDM)
-placeId := ReadInt64(hProc, pRealDM + off_DM_PlaceId)
-gameId := ReadInt64(hProc, pRealDM + off_DM_GameId)
-if (gameId < 1 || gameId > 9999999999999)
-    gameId := 0
-if (!dllBase || !pRealDM) {
-    MsgBox % "Attach failed (offsets stale?)`nBase: 0x" Format("{:X}", dllBase) "`nDataModel: 0x" Format("{:X}", pRealDM) "`nOffsets: " offsetNote
-    DllCall("CloseHandle", "Ptr", hProc)
-    ExitApp
-}
+    dllBase := GetModuleBase(hProc, "RobloxPlayerBeta.exe")
+    pFakeDM := ReadPtr(hProc, dllBase + static_FakeDM)
+    pRealDM := ReadPtr(hProc, pFakeDM + off_FDM_RealDM)
+    placeId := ReadInt64(hProc, pRealDM + off_DM_PlaceId)
+    gameId := ReadInt64(hProc, pRealDM + off_DM_GameId)
+    if (gameId < 1 || gameId > 9999999999999)
+        gameId := 0
+    if (!dllBase || !pRealDM) {
+        MsgBox % "Attach failed (offsets stale?)`nBase: 0x" Format("{:X}", dllBase) "`nDataModel: 0x" Format("{:X}", pRealDM) "`nOffsets: " offsetNote
+        DllCall("CloseHandle", "Ptr", hProc)
+        ExitApp
+    }
 
-IniRead, wantUI, %settingsFile%, keys, ui, ]
-IniRead, wantT, %settingsFile%, keys, toggle, Insert
-IniRead, wantSPon,%settingsFile%, keys, streamon, 0
-IniRead, wantWH, %settingsFile%, keys, sendinfo, F8
-IniRead, wantCHold, %settingsFile%, keys, camlockhold, LButton
-IniRead, wantCamDist, %settingsFile%, keys, camlockdist, 1000
-IniRead, wantCamFov, %settingsFile%, keys, camlockfov, 150
-IniRead, wantCamFovOn, %settingsFile%, keys, camlockfovon, 1
-IniRead, wantCamFovFill, %settingsFile%, keys, camlockfovfill, 0
-IniRead, wantCamFovAlpha, %settingsFile%, keys, camlockfovalpha, 25
-IniRead, wantCamSmooth, %settingsFile%, keys, camlocksmooth, 20
-IniRead, wantCamHeadY, %settingsFile%, keys, camlockheady, 1.5
-IniRead, webhookUrl, %settingsFile%, keys, webhook, %A_Space%
-IniRead, maxPlFallback, %settingsFile%, keys, maxplayers, 0
-webhookUrl := Trim(webhookUrl)
-IniRead, msgText, %settingsFile%, keys, message, %A_Space%
-IniRead, embedColor, %settingsFile%, keys, embedcolor, 7885FA
-IniRead, shotOn, %settingsFile%, keys, screenshot, 0
-msgText := Trim(msgText)
-embedColor := RegExReplace(Trim(embedColor), "^#")
-shotOn := (shotOn = "1") ? 1 : 0
-IniRead, manualTextOff, %settingsFile%, keys, textoff, 0
-if (off_TextLabel_Text < 0x10 && IsNum(manualTextOff) && manualTextOff + 0 >= 0x10)
-    off_TextLabel_Text := manualTextOff + 0
-if (off_TextLabel_Text < 0x10)
-    off_TextLabel_Text := 0xE38 ; built-in default (GuiObject::Text, dump version-9ac8595712b447a7)
-if (off_Inst_AttrContainer < 0x10)
-    off_Inst_AttrContainer := 0x48
-if (off_Inst_AttrList < 0x10)
-    off_Inst_AttrList := 0x18
-if (off_Attr_Next < 0x8)
-    off_Attr_Next := 0x58
-if (off_Attr_Value < 0x8)
-    off_Attr_Value := 0x18
-IniRead, manualNameOff, %settingsFile%, keys, attrnameoff, 0
-off_Attr_Name := (IsNum(manualNameOff) && manualNameOff + 0 >= 0 && manualNameOff + 0 <= 0x100) ? manualNameOff + 0 : 0
-IniRead, manualCamOff, %settingsFile%, keys, camoff, 0
-if (off_WS_Camera < 0x10 && IsNum(manualCamOff) && manualCamOff + 0 >= 0x10)
-    off_WS_Camera := manualCamOff + 0
-IniRead, manualMaxOff, %settingsFile%, keys, maxpoff, 0
-if (off_Players_MaxPlayers < 0x10 && IsNum(manualMaxOff) && manualMaxOff + 0 >= 0x10)
-    off_Players_MaxPlayers := manualMaxOff + 0
+    IniRead, wantUI, %settingsFile%, keys, ui, ]
+    IniRead, wantT, %settingsFile%, keys, toggle, Insert
+    IniRead, wantSPon,%settingsFile%, keys, streamon, 0
+    IniRead, wantWH, %settingsFile%, keys, sendinfo, F8
+    IniRead, wantCHold, %settingsFile%, keys, camlockhold, LButton
+    IniRead, wantCamDist, %settingsFile%, keys, camlockdist, 1000
+    IniRead, wantCamFov, %settingsFile%, keys, camlockfov, 150
+    IniRead, wantCamFovOn, %settingsFile%, keys, camlockfovon, 1
+    IniRead, wantCamFovFill, %settingsFile%, keys, camlockfovfill, 0
+    IniRead, wantCamFovAlpha, %settingsFile%, keys, camlockfovalpha, 25
+    IniRead, wantCamSmooth, %settingsFile%, keys, camlocksmooth, 20
+    IniRead, wantCamHeadY, %settingsFile%, keys, camlockheady, 1.5
+    IniRead, webhookUrl, %settingsFile%, keys, webhook, %A_Space%
+    IniRead, maxPlFallback, %settingsFile%, keys, maxplayers, 0
+    webhookUrl := Trim(webhookUrl)
+    IniRead, msgText, %settingsFile%, keys, message, %A_Space%
+    IniRead, embedColor, %settingsFile%, keys, embedcolor, 7885FA
+    IniRead, shotOn, %settingsFile%, keys, screenshot, 0
+    msgText := Trim(msgText)
+    embedColor := RegExReplace(Trim(embedColor), "^#")
+    shotOn := (shotOn = "1") ? 1 : 0
+    IniRead, manualTextOff, %settingsFile%, keys, textoff, 0
+    if (off_TextLabel_Text < 0x10 && IsNum(manualTextOff) && manualTextOff + 0 >= 0x10)
+        off_TextLabel_Text := manualTextOff + 0
+    if (off_TextLabel_Text < 0x10)
+        off_TextLabel_Text := 0xE38 ; built-in default (GuiObject::Text, dump version-9ac8595712b447a7)
+    if (off_Inst_AttrContainer < 0x10)
+        off_Inst_AttrContainer := 0x48
+    if (off_Inst_AttrList < 0x10)
+        off_Inst_AttrList := 0x18
+    if (off_Attr_Next < 0x8)
+        off_Attr_Next := 0x58
+    if (off_Attr_Value < 0x8)
+        off_Attr_Value := 0x18
+    IniRead, manualNameOff, %settingsFile%, keys, attrnameoff, 0
+    off_Attr_Name := (IsNum(manualNameOff) && manualNameOff + 0 >= 0 && manualNameOff + 0 <= 0x100) ? manualNameOff + 0 : 0
+    IniRead, manualCamOff, %settingsFile%, keys, camoff, 0
+    if (off_WS_Camera < 0x10 && IsNum(manualCamOff) && manualCamOff + 0 >= 0x10)
+        off_WS_Camera := manualCamOff + 0
+    IniRead, manualMaxOff, %settingsFile%, keys, maxpoff, 0
+    if (off_Players_MaxPlayers < 0x10 && IsNum(manualMaxOff) && manualMaxOff + 0 >= 0x10)
+        off_Players_MaxPlayers := manualMaxOff + 0
 
-streamProof := (wantSPon = "1") ? true : false
-IniRead, fontIdx, %settingsFile%, keys, font, 1
-fontIdx := (IsInt(fontIdx) && fontIdx >= 1 && fontIdx <= fontNames.Length()) ? fontIdx + 0 : 1
-fontFace := fontNames[fontIdx]
-LoadProfile()
+    streamProof := (wantSPon = "1") ? true : false
+    IniRead, fontIdx, %settingsFile%, keys, font, 1
+    fontIdx := (IsInt(fontIdx) && fontIdx >= 1 && fontIdx <= fontNames.Length()) ? fontIdx + 0 : 1
+    fontFace := fontNames[fontIdx]
+    LoadProfile()
 
-uiKey := (wantUI = "" || wantUI = "ERROR" || wantUI = "PROMPT") ? "]" : wantUI
-wantT := (wantT = "" || wantT = "ERROR") ? "Insert" : wantT
-wantWH := (wantWH = "" || wantWH = "ERROR") ? "F8" : wantWH
-camlockHoldKey := (wantCHold = "" || wantCHold = "ERROR") ? "LButton" : wantCHold
-camlockMaxDist := IsNum(wantCamDist) ? Round(wantCamDist + 0) : 1000
-if (camlockMaxDist < 10 || camlockMaxDist > 10000)
-    camlockMaxDist := 1000
-camlockFOV := IsNum(wantCamFov) ? Round(wantCamFov + 0) : 150
-if (camlockFOV < 10 || camlockFOV > 600)
-    camlockFOV := 150
-camlockFovOn := (wantCamFovOn = "1")
-camlockFovFill := (wantCamFovFill = "1")
-camlockFovAlpha := IsNum(wantCamFovAlpha) ? Round(wantCamFovAlpha + 0) : 25
-if (camlockFovAlpha < 0 || camlockFovAlpha > 100)
-    camlockFovAlpha := 25
-camlockSmooth := IsNum(wantCamSmooth) ? (wantCamSmooth + 0) / 100 : 0.20
-if (camlockSmooth < 0 || camlockSmooth > 1)
-    camlockSmooth := 0.20
-camlockHeadY := IsNum(wantCamHeadY) ? wantCamHeadY + 0 : 1.5
-if (camlockHeadY < 0 || camlockHeadY > 5)
-    camlockHeadY := 1.5
-; no two actions on the same key (the later one becomes unbound)
-usedKeys := {}
-usedKeys[uiKey] := true
-for _, nm in ["wantT", "wantWH"] {
-    k := %nm%
-    if (k != "None" && usedKeys.HasKey(k))
-        %nm% := "None"
-    else
-        usedKeys[k] := true
-}
+    uiKey := (wantUI = "" || wantUI = "ERROR" || wantUI = "PROMPT") ? "]" : wantUI
+    wantT := (wantT = "" || wantT = "ERROR") ? "Insert" : wantT
+    wantWH := (wantWH = "" || wantWH = "ERROR") ? "F8" : wantWH
+    camlockHoldKey := (wantCHold = "" || wantCHold = "ERROR") ? "LButton" : wantCHold
+    camlockMaxDist := IsNum(wantCamDist) ? Round(wantCamDist + 0) : 1000
+    if (camlockMaxDist < 10 || camlockMaxDist > 10000)
+        camlockMaxDist := 1000
+    camlockFOV := IsNum(wantCamFov) ? Round(wantCamFov + 0) : 150
+    if (camlockFOV < 10 || camlockFOV > 600)
+        camlockFOV := 150
+    camlockFovOn := (wantCamFovOn = "1")
+    camlockFovFill := (wantCamFovFill = "1")
+    camlockFovAlpha := IsNum(wantCamFovAlpha) ? Round(wantCamFovAlpha + 0) : 25
+    if (camlockFovAlpha < 0 || camlockFovAlpha > 100)
+        camlockFovAlpha := 25
+    camlockSmooth := IsNum(wantCamSmooth) ? (wantCamSmooth + 0) / 100 : 0.20
+    if (camlockSmooth < 0 || camlockSmooth > 1)
+        camlockSmooth := 0.20
+    camlockHeadY := IsNum(wantCamHeadY) ? wantCamHeadY + 0 : 1.5
+    if (camlockHeadY < 0 || camlockHeadY > 5)
+        camlockHeadY := 1.5
+    ; no two actions on the same key (the later one becomes unbound)
+    usedKeys := {}
+    usedKeys[uiKey] := true
+    for _, nm in ["wantT", "wantWH"] {
+        k := %nm%
+        if (k != "None" && usedKeys.HasKey(k))
+            %nm% := "None"
+        else
+            usedKeys[k] := true
+    }
 
-players := []
-localPrim := 0
-localTeam := 0
-hdcMem := 0
-hbm := 0
-hbmOld := 0
-brushKey := DllCall("CreateSolidBrush", "UInt", 0x000000, "Ptr")
-brushOutline := DllCall("CreateSolidBrush", "UInt", 0x010101, "Ptr")
-brushBox := DllCall("CreateSolidBrush", "UInt", 0x3C3CFF, "Ptr")
-brushBack := DllCall("CreateSolidBrush", "UInt", 0x303030, "Ptr")
-brushGreen := DllCall("CreateSolidBrush", "UInt", 0x00DC50, "Ptr")
-brushYellow := DllCall("CreateSolidBrush", "UInt", 0x00D7FF, "Ptr")
-brushRed := DllCall("CreateSolidBrush", "UInt", 0x0000CC, "Ptr")
-for gid, defs in GameDefs {
-    for _, d in defs
-        d.brush := DllCall("CreateSolidBrush", "UInt", d.color, "Ptr")
-}
+    players := []
+    localPrim := 0
+    localTeam := 0
+    hdcMem := 0
+    hbm := 0
+    hbmOld := 0
+    brushKey := DllCall("CreateSolidBrush", "UInt", 0x000000, "Ptr")
+    brushOutline := DllCall("CreateSolidBrush", "UInt", 0x010101, "Ptr")
+    brushBox := DllCall("CreateSolidBrush", "UInt", 0x3C3CFF, "Ptr")
+    brushBack := DllCall("CreateSolidBrush", "UInt", 0x303030, "Ptr")
+    brushGreen := DllCall("CreateSolidBrush", "UInt", 0x00DC50, "Ptr")
+    brushYellow := DllCall("CreateSolidBrush", "UInt", 0x00D7FF, "Ptr")
+    brushRed := DllCall("CreateSolidBrush", "UInt", 0x0000CC, "Ptr")
+    for gid, defs in GameDefs {
+        for _, d in defs
+            d.brush := DllCall("CreateSolidBrush", "UInt", d.color, "Ptr")
+    }
 
-ovX := 0
-ovY := 0
-ovW := 0
-ovH := 0
-GetClientArea(hwnd, ovX, ovY, ovW, ovH)
-if (ovW < 1 || ovH < 1) {
-    MsgBox Roblox window has no client area (minimized?).
-    ExitApp
-}
-Gui, ESP:+AlwaysOnTop -Caption +ToolWindow +E0x20 +LastFound +HwndhGui
-Gui, ESP:Color, 000000
-Gui, ESP:Show, NA x%ovX% y%ovY% w%ovW% h%ovH%
-WinSet, TransColor, 000000, ahk_id %hGui%
-ResizeBackbuffer(hGui, ovW, ovH)
-dirtyOn := true
-dL := 0
-dT := 0
-dR := ovW
-dB := ovH
+    ovX := 0
+    ovY := 0
+    ovW := 0
+    ovH := 0
+    GetClientArea(hwnd, ovX, ovY, ovW, ovH)
+    if (ovW < 1 || ovH < 1) {
+        MsgBox Roblox window has no client area (minimized?).
+        ExitApp
+    }
+    Gui, ESP:+AlwaysOnTop -Caption +ToolWindow +E0x20 +LastFound +HwndhGui
+    Gui, ESP:Color, 000000
+    Gui, ESP:Show, NA x%ovX% y%ovY% w%ovW% h%ovH%
+    WinSet, TransColor, 000000, ahk_id %hGui%
+    ResizeBackbuffer(hGui, ovW, ovH)
+    dirtyOn := true
+    dL := 0
+    dT := 0
+    dR := ovW
+    dB := ovH
 
-if streamProof
-    SetStreamProof(hGui, true)
+    if streamProof
+        SetStreamProof(hGui, true)
 
-espKey := wantT
-hookKey := wantWH
+    espKey := wantT
+    hookKey := wantWH
 
-; ============================================================
-;  Settings menu (Alia ring UI) - library is downloaded to .\lib on first run
-; ============================================================
-IniRead, _accRaw, %settingsFile%, keys, accent, 16738740
-espAccent := IsNum(_accRaw) ? (_accRaw + 0) : 0xFF69B4
-if (espAccent < 0 || espAccent > 0xFFFFFF)
-    espAccent := 0xFF69B4
-fovPen := 0
-fovFillBrush := 0
-UpdateFovBrushes()
+    ; ============================================================
+    ;  Settings menu (Alia ring UI) - library is downloaded to .\lib on first run
+    ; ============================================================
+    IniRead, _accRaw, %settingsFile%, keys, accent, 16738740
+    espAccent := IsNum(_accRaw) ? (_accRaw + 0) : 0xFF69B4
+    if (espAccent < 0 || espAccent > 0xFFFFFF)
+        espAccent := 0xFF69B4
+    fovPen := 0
+    fovFillBrush := 0
+    UpdateFovBrushes()
 
-BuildAliaUi()
-OnExit, Cleanup
-RefreshPlayers()
-UpdateUI()
-MsgBox, 0, esp.ahk - attached, % "PlaceId: " placeId "`nOffsets: " offsetNote "`nPlayers: " players.Length() "`n`nPress " uiKey " to open the settings menu.", 6
-SetTimer, RenderTick, 16
-SetTimer, RefreshTick, 2000
-DllCall("winmm\timeBeginPeriod", "UInt", 1)
-SetTimer, WalkTimer, 8
-SetTimer, SpecTimer, 50
-SetTimer, CamlockTimer, 8
-SetTimer, ConfigSync, 1000
+    BuildAliaUi()
+BuildClickGui()
+    OnExit, Cleanup
+    RefreshPlayers()
+    UpdateUI()
+    MsgBox, 0, esp.ahk - attached, % "PlaceId: " placeId "`nOffsets: " offsetNote "`nPlayers: " players.Length() "`n`nPress " uiKey " to open the settings menu.", 6
+    SetTimer, RenderTick, 16
+    SetTimer, RefreshTick, 2000
+    DllCall("winmm\timeBeginPeriod", "UInt", 1)
+    SetTimer, WalkTimer, 8
+    SetTimer, SpecTimer, 50
+    SetTimer, CamlockTimer, 8
+    SetTimer, ConfigSync, 1000
 return
 
 PromptOK:
@@ -559,6 +562,7 @@ HideTip:
 return
 
 Cleanup:
+    Gui, ClickGUI:Destroy
     SaveAllUiConfig()
     SaveCamlockConfig()
     SaveIniConfigToJson()
@@ -714,4 +718,8 @@ ExitApp
 #Include *i %A_ScriptDir%\lib\functions\IsClassName.ahk
 #Include *i %A_ScriptDir%\lib\functions\ReadClassName.ahk
 #Include *i %A_ScriptDir%\lib\functions\GetModuleBase.ahk
+#Include *i %A_ScriptDir%\lib\functions\BuildClickGui.ahk
+#Include *i %A_ScriptDir%\lib\functions\ToggleClickGui.ahk
+#Include *i %A_ScriptDir%\lib\functions\OpenFeatureConfig.ahk
+#Include *i %A_ScriptDir%\lib\functions\ClickGuiLabels.ahk
 #Include *i %A_ScriptDir%\lib\aliaUI.ahk

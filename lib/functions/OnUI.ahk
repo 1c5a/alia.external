@@ -150,6 +150,7 @@ OnUI(key, value, extra) {
         IniWrite, %value%, %settingsFile%, keys, fade
     } else if (key = "togglekey") {
         SetTimer, ActivateGame, -450
+        ToggleClickGui()
     }
 }
 

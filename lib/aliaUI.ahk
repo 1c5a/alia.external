@@ -657,6 +657,7 @@ CloseTab() {
     listenEl := 0
     dragCh := 0
     mode := "ringin"
+    ToggleClickGui()
 }
 
 RingAction(n) {
