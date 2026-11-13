@@ -17,7 +17,9 @@ if bootstrap {
         MsgBox, 16, esp.ahk updater, The updater could not install the latest files.
         ExitApp
     }
-    Run, % """" A_AhkPath """ """ installDir "\loader.ahk"""", , UseErrorLevel
+    q := Chr(34)
+    runCmd := q . A_AhkPath . q . " " . q . installDir . "\loader.ahk" . q
+    Run, %runCmd%, , UseErrorLevel
     ExitApp
 }
 
@@ -44,7 +46,9 @@ return
 LoaderEvent(key, value, extra) {
     global mainFile
     if (key = "loaderlaunch") {
-        Run, % """" A_AhkPath """ """ mainFile """", , UseErrorLevel
+        q := Chr(34)
+        runCmd := q . A_AhkPath . q . " " . q . mainFile . q
+        Run, %runCmd%, , UseErrorLevel
         if !ErrorLevel
             ExitApp
         LoaderStatus("Could not start main.ahk")
