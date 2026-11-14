@@ -20,7 +20,9 @@ isInstalled := false
 IfEqual, A_ScriptDir, %installDir%
     isInstalled := true
 forceUi := InStr(DllCall("GetCommandLine", "Str"), "--alia-ui") > 0
-showUi := isInstalled || forceUi
+; Always keep the standalone updater visible. Bootstrap failures must be visible
+; instead of leaving the user with a silent process exit.
+showUi := true
 loaderReady := false
 
 if (showUi) {
@@ -56,6 +58,7 @@ if (!isInstalled && !forceUi) {
         Run, %runCmd%, , UseErrorLevel
         ExitApp
     }
+    LoaderStatus("Self-update failed; continuing with this copy")
 }
 if (showUi) {
     LoaderStatus("Ready to launch")
