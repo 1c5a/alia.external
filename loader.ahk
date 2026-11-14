@@ -9,10 +9,8 @@ manifestTmp := A_Temp "\espahk_manifest.json"
 versionFile := installDir "\version.txt"
 mainFile := installDir "\main.ahk"
 configFile := installDir "\esp_settings.json"
-isInstalled := false
-IfEqual, A_ScriptDir, %installDir%
-    isInstalled := true
-bootstrap := !isInstalled || !LoaderLibraryReady(A_ScriptDir "\lib\aliaUI.ahk")
+installMarker := installDir "\.loader-installed"
+bootstrap := !FileExist(installMarker) || !LoaderLibraryReady(A_ScriptDir "\lib\aliaUI.ahk")
 
 if bootstrap {
     FileCreateDir, %installDir%
@@ -20,6 +18,7 @@ if bootstrap {
         MsgBox, 16, esp.ahk updater, The updater could not install the latest files.
         ExitApp
     }
+    FileAppend, installed, %installMarker%, UTF-8
     q := Chr(34)
     runCmd := q . A_AhkPath . q . " " . q . installDir . "\loader.ahk" . q
     Run, %runCmd%, , UseErrorLevel
