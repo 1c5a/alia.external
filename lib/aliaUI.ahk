@@ -159,10 +159,12 @@ AUI_Init(opts := "") {
     FADE_STEP := 0.2
     TAB_COR := 32
     TITLE_H := 40
+    StartVisible := true
+    TabOnly := false
 
     acc := 0xFF69B4
     tk := "F8"
-    allowed := " OUTER_R HOLE_R EXPAND LINE_W GAP CORNER_R PENT_R PENT_EXP PENT_COR EASE TAB_W TAB_H FADE_STEP TAB_COR TITLE_H "
+    allowed := " OUTER_R HOLE_R EXPAND LINE_W GAP CORNER_R PENT_R PENT_EXP PENT_COR EASE TAB_W TAB_H FADE_STEP TAB_COR TITLE_H StartVisible TabOnly "
     if (IsObject(opts)) {
         for k, v in opts {
             if (k = "Accent")
@@ -178,16 +180,16 @@ AUI_Init(opts := "") {
     RX := (A_ScreenWidth - RSIZE) // 2
     RY := (A_ScreenHeight - RSIZE) // 2
     hover := 0
-    visible := true
-    uiA := 1
-    uiTarget := 1
+    visible := StartVisible ? true : false
+    uiA := StartVisible ? 1 : 0
+    uiTarget := StartVisible ? 1 : 0
     ACC_A := 1
     UI_ALPHA := 230
     BLUR_ON := 1
     anim := [0, 0, 0, 0, 0, 0]
 
     mode := "ring"
-    ringA := 1
+    ringA := TabOnly ? 0 : 1
     tabA := 0
     activeTab := 0
     tabTitle := ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Settings"]
@@ -251,12 +253,20 @@ AUI_Init(opts := "") {
 
     Gui, UI:+AlwaysOnTop -Caption +ToolWindow +HwndUIHwnd
     Gui, UI:Color, 000000
-    Gui, UI:Show, x0 y0 w%A_ScreenWidth% h%A_ScreenHeight%
+    if (StartVisible)
+        Gui, UI:Show, x0 y0 w%A_ScreenWidth% h%A_ScreenHeight%
+    else
+        Gui, UI:Hide
     EnableBlur(UIHwnd, 3)
     WinSet, Transparent, % UI_ALPHA, ahk_id %UIHwnd%
 
     Gui, Ring:+AlwaysOnTop -Caption +ToolWindow +E0x80000 +OwnerUI +HwndhRing
-    Gui, Ring:Show, x%RX% y%RY% w%RSIZE% h%RSIZE% NA
+    if (TabOnly)
+        Gui, Ring:Hide
+    else if (StartVisible)
+        Gui, Ring:Show, x%RX% y%RY% w%RSIZE% h%RSIZE% NA
+    else
+        Gui, Ring:Hide
 
     DllCall("LoadLibrary", "Str", "gdiplus")
     VarSetCapacity(si, A_PtrSize = 8 ? 24 : 16, 0)
@@ -818,7 +828,7 @@ DrawTab(c) {
 }
 
 DrawEl(el, idx) {
-    global rg, listenEl, ACC_DEEP, inputEl, blinkOn, ddEl, ddOpen, slEl, slText, slSel
+    global rg, listenEl, ACC, ACC_DEEP, inputEl, blinkOn, ddEl, ddOpen, slEl, slText, slSel
     t := el.type
     x := el.x
     y := el.y
@@ -832,6 +842,18 @@ DrawEl(el, idx) {
 
     } else if (t = "label") {
         DrawText(rg, el.label, x, y, w, h, 16, Col(0xD8, 0xFFFFFF), 0, 1)
+
+    } else if (t = "progress") {
+        DrawText(rg, el.label, x, y, w - 80, 28, 17, white, 0, 1)
+        DrawText(rg, el.value . "%", x, y, w, 28, 15, Col(0xD0, 0xFFFFFF), 2, 1)
+        barX := x + 8
+        barY := y + 34
+        barW := w - 16
+        FillRR(barX, barY, barW, 10, 5, Col(0x36, 0xFFFFFF))
+        fillW := barW * Max(0, Min(100, el.value + 0)) / 100
+        if (fillW > 1)
+            FillRR(barX, barY, fillW, 10, Min(5, fillW / 2), Col(0xE8, ACC))
+        StrokeRR(barX, barY, barW, 10, 5, Col(0x90, 0xFE0002), 1.2)
 
     } else if (t = "divider") {
         Ln(x, y + h / 2, x + w, y + h / 2, Col(0x70, 0xFE0002), 1.5)
@@ -1240,6 +1262,8 @@ ElemH(t) {
     if (t = "toggle" || t = "color" || t = "keybind" || t = "input" || t = "dropdown" || t = "multidropdown")
         return 40
     if (t = "slider")
+        return 58
+    if (t = "progress")
         return 58
 return 48
 }

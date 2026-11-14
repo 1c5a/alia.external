@@ -28,23 +28,17 @@ loaderReady := false
 
 if (showUi) {
     accent := LoaderAccent(configFile)
-    accentHex := Format("{:06X}", accent & 0xFFFFFF)
-    Gui, Loader:New, +AlwaysOnTop +ToolWindow -MaximizeBox -MinimizeBox -Caption +Border, alia updater
-    Gui, Loader:Color, 11111A
-    Gui, Loader:Font, s11 c%accentHex%, Segoe UI
-    Gui, Loader:Add, Text, x28 y18 w390 h30, alia
-    Gui, Loader:Font, s10 c%accentHex%, Segoe UI
-    Gui, Loader:Add, Text, x474 y18 w18 h28 gLoaderExit Center, x
-    Gui, Loader:Add, Text, x28 y49 w460 h2 Background%accentHex%
-    Gui, Loader:Font, s9 cD8D8E2, Segoe UI
-    Gui, Loader:Add, Text, vLoaderStatus x28 y68 w460 h24, Checking for updates...
-    Gui, Loader:Add, Text, x28 y104 w460 h10 Background292936
-    Gui, Loader:Add, Text, vLoaderFill x28 y104 w1 h10 Background%accentHex%
-    Gui, Loader:Add, Text, vLoaderVersion x28 y124 w460 h20 c90909C,
-    Gui, Loader:Font, s9 cFFFFFF, Segoe UI
-    Gui, Loader:Add, Text, vLoaderLaunch x28 y164 w220 h34 Background242431 gLoaderLaunch Center, Launch
-    Gui, Loader:Add, Text, vLoaderClose x268 y164 w220 h34 Background242431 gLoaderExit Center, Close
-    Gui, Loader:Show, w516 h220, alia updater
+    loaderUi := new AliaUI({TAB_W: 620, TAB_H: 300, Accent: accent, ToggleKey: "None", StartVisible: true, TabOnly: true})
+    loaderUi.Tab(1, "alia updater", "download")
+    loaderUi.Add(1, {type: "header", label: "alia"})
+    loaderUi.Add(1, {type: "label", key: "loaderstatus", label: "Checking for updates..."})
+    loaderUi.Add(1, {type: "label", key: "loaderversion", label: ""})
+    loaderUi.Add(1, {type: "progress", key: "loaderprogress", label: "Download progress", value: 0})
+    loaderUi.Add(1, {type: "button", key: "loaderlaunch", label: "Launch"})
+    loaderUi.Add(1, {type: "button", key: "loaderclose", label: "Close"})
+    loaderUi.OnEvent(Func("LoaderEvent"))
+    loaderUi.Start()
+    OpenTab(1)
 }
 
 FileCreateDir, %installDir%
@@ -55,7 +49,7 @@ if !LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, 
 if (!isInstalled && !forceUi) {
     if (LoaderSelfUpdate(repoRaw)) {
         q := Chr(34)
-        runCmd := q . A_AhkPath . q . " " . q . A_ScriptFullPath . q . " --alia-ui"
+        runCmd := q . A_AhkPath . q . " " . q . installDir . "\loader.ahk" . q . " --alia-ui"
         Run, %runCmd%, , UseErrorLevel
         ExitApp
     }
@@ -63,42 +57,40 @@ if (!isInstalled && !forceUi) {
 if (showUi) {
     LoaderStatus("Ready to launch")
     loaderReady := true
-    GuiControl, Loader:, LoaderLaunch, Launch
 }
 return
 
-LoaderLaunch:
-    if (!loaderReady)
-        return
-    q := Chr(34)
-    runCmd := q . A_AhkPath . q . " " . q . mainFile . q
-    Run, %runCmd%, , UseErrorLevel
-    if !ErrorLevel
+LoaderEvent(key, value, extra) {
+    global mainFile, loaderReady
+    if (key = "loaderclose")
         ExitApp
-    LoaderStatus("Could not start main.ahk")
-return
-
-LoaderExit:
-GuiClose:
-GuiEscape:
-    ExitApp
-return
+    if (key = "loaderlaunch" && loaderReady) {
+        q := Chr(34)
+        runCmd := q . A_AhkPath . q . " " . q . mainFile . q
+        Run, %runCmd%, , UseErrorLevel
+        if !ErrorLevel
+            ExitApp
+        LoaderStatus("Could not start main.ahk")
+    }
+}
 
 LoaderStatus(text) {
-    global showUi
+    global showUi, loaderUi
     if (!showUi)
         return
-    GuiControl, Loader:, LoaderStatus, %text%
+    el := loaderUi.Find("loaderstatus")
+    if IsObject(el) {
+        el.label := text
+        loaderUi.Redraw()
+    }
 }
 
 LoaderProgress(value) {
-    global showUi
+    global showUi, loaderUi
     if (!showUi)
         return
-    value := Max(0, Min(100, Round(value)))
-    width := Max(1, Round(460 * value / 100))
-    move := "w" . width
-    GuiControl, Loader:Move, LoaderFill, %move%
+    loaderUi.Set("loaderprogress", Max(0, Min(100, Round(value))))
+    loaderUi.Redraw()
 }
 
 LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repoRaw) {
@@ -117,7 +109,12 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
     localVersion := Trim(localVersion)
     installedLabel := (localVersion != "") ? localVersion : "none"
     versionLine := "Manifest v" . remoteVersion . "  |  Installed v" . installedLabel
-    GuiControl, Loader:, LoaderVersion, %versionLine%
+    if (showUi) {
+        versionEl := loaderUi.Find("loaderversion")
+        if IsObject(versionEl)
+            versionEl.label := versionLine
+        loaderUi.Redraw()
+    }
     if (remoteVersion = localVersion && FileExist(mainFile))
         return true
 
@@ -244,3 +241,5 @@ LoaderAccent(file) {
     }
     return 0xFF69B4
 }
+
+#Include *i %A_ScriptDir%\lib\aliaUI.ahk
