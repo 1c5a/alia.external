@@ -270,16 +270,20 @@ AUI_Init(opts := "") {
     Gui, UI:Add, Text, x%tailX% y28 w18 h22 vAUI_SearchTail +BackgroundTrans +E0x20, /
     Gui, UI:Font, s10 cFFFFFF, Segoe UI
     Gui, UI:Add, Text, x%searchX% y48 w440 h22 vAUI_SearchHint +BackgroundTrans +E0x20 c90909C Center,
+    Gui, UI:Show, Hide x0 y0 w%screenW% h%screenH%
+    WinMove, ahk_id %UIHwnd%, , 0, 0, %screenW%, %screenH%
     if (startVisible)
-        Gui, UI:Show, x0 y0 w%screenW% h%screenH%
+        Gui, UI:Show, NA
     else
         Gui, UI:Hide
     EnableBlur(UIHwnd, 3)
     WinSet, Transparent, % UI_ALPHA, ahk_id %UIHwnd%
 
     Gui, Ring:+AlwaysOnTop -Caption +ToolWindow +E0x80000 +OwnerUI +HwndhRing
+    Gui, Ring:Show, Hide x%RX% y%RY% w%RSIZE% h%RSIZE% NA
+    WinMove, ahk_id %hRing%, , %RX%, %RY%, %RSIZE%, %RSIZE%
     if (startVisible)
-        Gui, Ring:Show, x%RX% y%RY% w%RSIZE% h%RSIZE% NA
+        Gui, Ring:Show, NA
     else
         Gui, Ring:Hide
 

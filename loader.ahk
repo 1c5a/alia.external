@@ -1,6 +1,7 @@
 #NoEnv
 #SingleInstance Force
 SetBatchLines, -1
+DllCall("SetProcessDPIAware")
 
 repoRaw := "https://raw.githubusercontent.com/1c5a/alia.external/main/"
 installDir := A_LocalAppData "\espahk"
