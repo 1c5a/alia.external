@@ -9,7 +9,10 @@ manifestTmp := A_Temp "\espahk_manifest.json"
 versionFile := installDir "\version.txt"
 mainFile := installDir "\main.ahk"
 configFile := installDir "\esp_settings.json"
-bootstrap := (A_ScriptDir != installDir) || !LoaderLibraryReady(A_ScriptDir "\lib\aliaUI.ahk")
+isInstalled := false
+IfEqual, A_ScriptDir, %installDir%
+    isInstalled := true
+bootstrap := !isInstalled || !LoaderLibraryReady(A_ScriptDir "\lib\aliaUI.ahk")
 
 if bootstrap {
     FileCreateDir, %installDir%
