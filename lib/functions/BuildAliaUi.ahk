@@ -94,7 +94,6 @@ BuildAliaUi() {
     ui.Add(5, {type: "label", key: "camlockstatus", label: "Target: none", dep: "camlockon"})
 
     ui.OnEvent(Func("OnUI"))
-    ui.OnRing(Func("OnRing"))
     ui.Start()
     LoadAllUiConfig()
 
