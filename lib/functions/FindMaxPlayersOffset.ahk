@@ -5,7 +5,7 @@ FindMaxPlayersOffset() {
     pRealDM := ReadPtr(hProc, pFakeDM + off_FDM_RealDM)
     pSvc := (pRealDM > 0x10000) ? FindChildByClass(hProc, pRealDM, "Players") : 0
     if !pSvc {
-        MsgBox, 0x30, esp.ahk, Players service not found (are you in a server?).
+        MsgBox, 0x30, alia, Players service not found (are you in a server?).
         return
     }
     if (maxPlFallback < 1 || maxPlFallback > 500) {
@@ -15,9 +15,9 @@ FindMaxPlayersOffset() {
         if (f > 0) {
             off_Players_MaxPlayers := f
             IniWrite, %f%, %settingsFile%, keys, maxpoff
-            MsgBox, 0x40, esp.ahk, % "Auto-detected max players offset 0x" Format("{:X}", f) " (value " ReadUInt32(hProc, pSvc + f) "). Saved."
+        MsgBox, 0x40, alia, % "Auto-detected max players offset 0x" Format("{:X}", f) " (value " ReadUInt32(hProc, pSvc + f) "). Saved."
         } else
-            MsgBox, 0x30, esp.ahk, Couldn't detect it automatically. Type the real max player count into the "Max players" box and press this button again.
+        MsgBox, 0x30, alia, Couldn't detect it automatically. Type the real max player count into the "Max players" box and press this button again.
         return
     }
     size := 0x800
@@ -43,7 +43,7 @@ FindMaxPlayersOffset() {
     FileDelete, %dumpFile%
     FileAppend, %dump%, %dumpFile%, UTF-8
     if (hits.Length() = 0) {
-        MsgBox, 0x30, esp.ahk, % "No int equal to " maxPlFallback " found in the Players service.`nCheck the value, or look at:`n" dumpFile
+        MsgBox, 0x30, alia, % "No int equal to " maxPlFallback " found in the Players service.`nCheck the value, or look at:`n" dumpFile
         return
     }
     list := ""
@@ -54,7 +54,7 @@ FindMaxPlayersOffset() {
     msg := "Matches for " maxPlFallback ": " list "`nUsing 0x" Format("{:X}", off_Players_MaxPlayers) " and saved it."
     if (hits.Length() > 1)
         msg .= "`n`nMore than one match (MaxPlayers and PreferredPlayers can be equal). Use Send info, and if the count looks wrong tell me which offsets showed up - the full list is in:`n" dumpFile
-    MsgBox, 0x40, esp.ahk, %msg%
+    MsgBox, 0x40, alia, %msg%
 }
 
 ; no-input detection: MaxPlayers and PreferredPlayers sit next to each other and hold the same value,

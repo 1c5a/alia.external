@@ -278,7 +278,7 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
         askMsg := "The offsets dump is for:`n " (remoteVer != "" ? remoteVer : "(unknown)")
         askMsg .= "`n`nYour Roblox is:`n " (localHash != "" ? localHash : "(not detected)")
         askMsg .= "`n`nThe site may not have caught up with the latest update. Use them anyway?`n(No = built-in offsets)"
-        MsgBox, 0x24, esp.ahk, %askMsg%
+        MsgBox, 0x24, alia, %askMsg%
         IfMsgBox No
         flat := ""
     }
@@ -461,7 +461,7 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     OnExit, Cleanup
     RefreshPlayers()
     UpdateUI()
-    MsgBox, 0, esp.ahk - attached, % "PlaceId: " placeId "`nOffsets: " offsetNote "`nPlayers: " players.Length() "`n`nPress " uiKey " to open the settings menu.", 6
+    MsgBox, 0, alia - attached, % "PlaceId: " placeId "`nOffsets: " offsetNote "`nPlayers: " players.Length() "`n`nPress " uiKey " to open the settings menu.", 6
     SetTimer, RenderTick, 16
     SetTimer, RefreshTick, 2000
     DllCall("winmm\timeBeginPeriod", "UInt", 1)

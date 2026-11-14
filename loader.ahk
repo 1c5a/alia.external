@@ -1,94 +1,75 @@
 #NoEnv
 #SingleInstance Force
 SetBatchLines, -1
+DllCall("SetProcessDPIAware")
 
 repoRaw := "https://raw.githubusercontent.com/1c5a/alia.external/main/"
 cacheBust := A_Now . A_TickCount
 EnvGet, localAppData, LocalAppData
 if (localAppData = "") {
-    MsgBox, 16, esp.ahk updater, Could not locate the LocalAppData folder.
+    MsgBox, 16, alia updater, Could not locate the LocalAppData folder.
     ExitApp
 }
 installDir := localAppData "\espahk"
 manifestUrl := repoRaw "manifest.json?cb=" cacheBust
-manifestTmp := A_Temp "\espahk_manifest.json"
+manifestTmp := A_Temp "\alia_manifest.json"
 versionFile := installDir "\version.txt"
 mainFile := installDir "\main.ahk"
 configFile := installDir "\esp_settings.json"
-bootstrap := !FileExist(A_ScriptDir "\lib\aliaUI.ahk")
-
-if bootstrap {
-    FileCreateDir, %installDir%
-    if !LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repoRaw) {
-        MsgBox, 16, esp.ahk updater, The updater could not install the latest files.
-        ExitApp
-    }
-    q := Chr(34)
-    runCmd := q . A_AhkPath . q . " " . q . installDir . "\loader.ahk" . q
-    Run, %runCmd%, , UseErrorLevel
-    ExitApp
-}
+isInstalled := false
+IfEqual, A_ScriptDir, %installDir%
+    isInstalled := true
 
 accent := LoaderAccent(configFile)
-loaderUi := new AliaUI({TAB_W: 620, TAB_H: 300, Accent: accent, ToggleKey: "None"})
-loaderUi.Tab(1, "Updater", "download")
-loaderUi.Add(1, {type: "header", label: "esp.ahk updater"})
-loaderUi.Add(1, {type: "label", key: "loaderstatus", label: "Checking for updates..."})
-loaderUi.Add(1, {type: "label", key: "loaderprogress", label: "Download progress: [                    ] 0%"})
-loaderUi.Add(1, {type: "button", key: "loaderlaunch", label: "Launch"})
-loaderUi.OnEvent(Func("LoaderEvent"))
-loaderUi.Start()
-OpenTab(1)
+accentHex := Format("{:06X}", accent & 0xFFFFFF)
+Gui, Loader:New, +AlwaysOnTop +ToolWindow -MaximizeBox -MinimizeBox, alia updater
+Gui, Loader:Color, 15151F
+Gui, Loader:Font, s11 c%accentHex%, Segoe UI
+Gui, Loader:Add, Text, x28 y20 w460 h30, alia
+Gui, Loader:Font, s9 cD8D8E2, Segoe UI
+Gui, Loader:Add, Text, vLoaderStatus x28 y62 w460 h24, Checking for updates...
+Gui, Loader:Add, Progress, vLoaderProgress x28 y98 w460 h14 c%accentHex% Background30303A, 0
+Gui, Loader:Add, Text, vLoaderVersion x28 y124 w460 h20 c90909C,
+Gui, Loader:Add, Button, vLoaderLaunch gLoaderLaunch x28 y164 w220 h34 Disabled, Launch
+Gui, Loader:Add, Button, gLoaderExit x268 y164 w220 h34, Close
+Gui, Loader:Show, w516 h220, alia updater
 
 FileCreateDir, %installDir%
 if !LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repoRaw) {
     LoaderStatus("Update failed. Check your connection.")
     return
 }
+if (!isInstalled)
+    LoaderSelfUpdate(repoRaw)
 LoaderStatus("Ready to launch")
-LoaderProgress(100)
+GuiControl, Loader:Enable, LoaderLaunch
 return
 
-LoaderEvent(key, value, extra) {
-    global mainFile
-    if (key = "loaderlaunch") {
-        q := Chr(34)
-        runCmd := q . A_AhkPath . q . " " . q . mainFile . q
-        Run, %runCmd%, , UseErrorLevel
-        if !ErrorLevel
-            ExitApp
-        LoaderStatus("Could not start main.ahk")
-    }
-}
+LoaderLaunch:
+    q := Chr(34)
+    runCmd := q . A_AhkPath . q . " " . q . mainFile . q
+    Run, %runCmd%, , UseErrorLevel
+    if !ErrorLevel
+        ExitApp
+    LoaderStatus("Could not start main.ahk")
+return
+
+LoaderExit:
+GuiClose:
+GuiEscape:
+    ExitApp
+return
 
 LoaderStatus(text) {
-    global loaderUi
-    if !IsObject(loaderUi)
-        return
-    el := loaderUi.Find("loaderstatus")
-    if IsObject(el) {
-        el.label := text
-        loaderUi.Redraw()
-    }
+    GuiControl, Loader:, LoaderStatus, %text%
 }
 
 LoaderProgress(value) {
-    global loaderUi
-    if !IsObject(loaderUi)
-        return
     value := Max(0, Min(100, Round(value)))
-    filled := Round(value / 5)
-    bar := ""
-    Loop, 20
-        bar .= (A_Index <= filled) ? "=" : " "
-    el := loaderUi.Find("loaderprogress")
-    if IsObject(el)
-        el.label := "Download progress: [" bar "] " value "%"
-    loaderUi.Redraw()
+    GuiControl, Loader:, LoaderProgress, %value%
 }
 
 LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repoRaw) {
-    global loaderUi
     FileDelete, %manifestTmp%
     if !LoaderFetchManifest(manifestUrl, manifestTmp)
         return false
@@ -103,7 +84,8 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
         FileRead, localVersion, %versionFile%
     localVersion := Trim(localVersion)
     installedLabel := (localVersion != "") ? localVersion : "none"
-    LoaderStatus("Manifest v" . remoteVersion . " | installed v" . installedLabel)
+    versionLine := "Manifest v" . remoteVersion . "  |  Installed v" . installedLabel
+    GuiControl, Loader:, LoaderVersion, %versionLine%
     if (remoteVersion = localVersion && FileExist(mainFile))
         return true
 
@@ -119,24 +101,37 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
         rel := f1
         pos += StrLen(f)
         dst := installDir "\" StrReplace(rel, "/", "\")
-        if (dst = A_ScriptFullPath)
-            continue
         SplitPath, dst, , dstDir
         FileCreateDir, %dstDir%
         tmp := dst ".tmp"
-        LoaderStatus("Downloading " rel)
+        LoaderStatus("Downloading " . rel)
         fileUrl := repoRaw . rel . "?cb=" . A_Now . A_TickCount
         UrlDownloadToFile, %fileUrl%, %tmp%
+        if ErrorLevel {
+            FileDelete, %tmp%
+            return false
+        }
+        FileMove, %tmp%, %dst%, 1
         if ErrorLevel
             return false
-        FileMove, %tmp%, %dst%, 1
         downloaded++
         LoaderProgress(fileCount ? Round(downloaded * 100 / fileCount) : 100)
         Sleep, 10
     }
     FileDelete, %versionFile%
     FileAppend, %remoteVersion%, %versionFile%, UTF-8
-    return true
+    return !ErrorLevel
+}
+
+LoaderSelfUpdate(repoRaw) {
+    source := repoRaw . "loader.ahk?cb=" . A_Now . A_TickCount
+    tmp := A_ScriptFullPath . ".selfupdate.tmp"
+    FileDelete, %tmp%
+    UrlDownloadToFile, %source%, %tmp%
+    if ErrorLevel
+        return false
+    FileMove, %tmp%, %A_ScriptFullPath%, 1
+    return !ErrorLevel
 }
 
 LoaderFetchManifest(url, dst) {
@@ -147,7 +142,7 @@ LoaderFetchManifest(url, dst) {
         http.Open("GET", url, false)
         http.SetRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
         http.SetRequestHeader("Pragma", "no-cache")
-        http.SetRequestHeader("User-Agent", "espahk-updater/2")
+        http.SetRequestHeader("User-Agent", "alia-updater/1")
         http.Send()
         if (http.Status != 200)
             return false
@@ -172,5 +167,3 @@ LoaderAccent(file) {
     }
     return 0xFF69B4
 }
-
-#Include *i %A_ScriptDir%\lib\aliaUI.ahk
