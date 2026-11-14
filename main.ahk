@@ -116,6 +116,8 @@ camlockFovAlpha := 25
 camlockMaxDist := 1000
 camlockTarget := ""
 camlockHeadY := 1.5
+clickGuiOn := false
+hClickGui := 0
 streamProof := false
 TARGET_PART := "HumanoidRootPart"
 gameId := 0
@@ -450,6 +452,7 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     UpdateFovBrushes()
 
     BuildAliaUi()
+BuildClickGui()
     OnExit, Cleanup
     RefreshPlayers()
     UpdateUI()
@@ -559,6 +562,7 @@ HideTip:
 return
 
 Cleanup:
+    Gui, ClickGUI:Destroy
     SaveAllUiConfig()
     SaveCamlockConfig()
     SaveIniConfigToJson()
@@ -714,4 +718,8 @@ ExitApp
 #Include *i %A_ScriptDir%\lib\functions\IsClassName.ahk
 #Include *i %A_ScriptDir%\lib\functions\ReadClassName.ahk
 #Include *i %A_ScriptDir%\lib\functions\GetModuleBase.ahk
+#Include *i %A_ScriptDir%\lib\functions\BuildClickGui.ahk
+#Include *i %A_ScriptDir%\lib\functions\ToggleClickGui.ahk
+#Include *i %A_ScriptDir%\lib\functions\OpenFeatureConfig.ahk
+#Include *i %A_ScriptDir%\lib\functions\ClickGuiLabels.ahk
 #Include *i %A_ScriptDir%\lib\aliaUI.ahk

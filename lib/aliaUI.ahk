@@ -142,28 +142,27 @@ class AliaUI {
 
 AUI_Init(opts := "") {
     global
-    local k, v, allowed, acc, tk, startVisible
+    local k, v, allowed, acc, tk
 
-    OUTER_R := 300
-    HOLE_R := 140
-    EXPAND := 22
+    OUTER_R := 230
+    HOLE_R := 110
+    EXPAND := 16
     LINE_W := 3
     GAP := 4
     CORNER_R := 40
-    PENT_R := 116
-    PENT_EXP := 12
+    PENT_R := 88
+    PENT_EXP := 8
     PENT_COR := 40
     EASE := 0.22
-    TAB_W := 700
-    TAB_H := 520
+    TAB_W := 600
+    TAB_H := 440
     FADE_STEP := 0.2
     TAB_COR := 32
     TITLE_H := 40
 
     acc := 0xFF69B4
     tk := "F8"
-    startVisible := false
-    allowed := " OUTER_R HOLE_R EXPAND LINE_W GAP CORNER_R PENT_R PENT_EXP PENT_COR EASE TAB_W TAB_H FADE_STEP TAB_COR TITLE_H StartVisible "
+    allowed := " OUTER_R HOLE_R EXPAND LINE_W GAP CORNER_R PENT_R PENT_EXP PENT_COR EASE TAB_W TAB_H FADE_STEP TAB_COR TITLE_H "
     if (IsObject(opts)) {
         for k, v in opts {
             if (k = "Accent")
@@ -175,27 +174,20 @@ AUI_Init(opts := "") {
         }
     }
 
-    screenW := DllCall("GetSystemMetrics", "Int", 0)
-    screenH := DllCall("GetSystemMetrics", "Int", 1)
-    if (screenW <= 0)
-        screenW := A_ScreenWidth
-    if (screenH <= 0)
-        screenH := A_ScreenHeight
-
     RSIZE := Max((OUTER_R + EXPAND + LINE_W + 2) * 2, TAB_W + LINE_W * 2 + 8, TAB_H + LINE_W * 2 + 8)
-    RX := (screenW - RSIZE) // 2
-    RY := (screenH - RSIZE) // 2
+    RX := (A_ScreenWidth - RSIZE) // 2
+    RY := (A_ScreenHeight - RSIZE) // 2
     hover := 0
-    visible := startVisible ? true : false
-    uiA := startVisible ? 1 : 0
-    uiTarget := startVisible ? 1 : 0
+    visible := true
+    uiA := 1
+    uiTarget := 1
     ACC_A := 1
     UI_ALPHA := 230
     BLUR_ON := 1
     anim := [0, 0, 0, 0, 0, 0]
 
     mode := "ring"
-    ringA := startVisible ? 1 : 0
+    ringA := 1
     tabA := 0
     activeTab := 0
     tabTitle := ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Settings"]
@@ -252,40 +244,18 @@ AUI_Init(opts := "") {
     needDraw := false
     AUI_Handler := ""
     AUI_RingHandler := ""
-    AUI_SearchText := ""
 
     CoordMode, Mouse, Screen
     SetBatchLines, -1
 
     Gui, UI:+AlwaysOnTop -Caption +ToolWindow +HwndUIHwnd
     Gui, UI:Color, 000000
-    Gui, UI:Font, s10 cFFFFFF, Segoe UI
-    searchX := (screenW - 440) // 2
-    tailX := searchX + 428
-    searchHex := Format("{:06X}", acc & 0xFFFFFF)
-    Gui, UI:Add, Edit, x%searchX% y12 w440 h30 -Border vAUI_SearchEdit gAUI_SearchChanged Background101018 cFFFFFF
-    Gui, UI:Add, Text, x%searchX% y12 w440 h30 vAUI_SearchPlaceholder +BackgroundTrans +E0x20 c80808A, Search features
-    Gui, UI:Add, Text, x%searchX% y42 w440 h3 vAUI_SearchLine Background%searchHex%
-    Gui, UI:Font, s16 c%searchHex%, Segoe UI
-    Gui, UI:Add, Text, x%tailX% y28 w18 h22 vAUI_SearchTail +BackgroundTrans +E0x20, /
-    Gui, UI:Font, s10 cFFFFFF, Segoe UI
-    Gui, UI:Add, Text, x%searchX% y48 w440 h22 vAUI_SearchHint +BackgroundTrans +E0x20 c90909C Center,
-    Gui, UI:Show, Hide x0 y0 w%screenW% h%screenH%
-    WinMove, ahk_id %UIHwnd%, , 0, 0, %screenW%, %screenH%
-    if (startVisible)
-        Gui, UI:Show, NA
-    else
-        Gui, UI:Hide
+    Gui, UI:Show, x0 y0 w%A_ScreenWidth% h%A_ScreenHeight%
     EnableBlur(UIHwnd, 3)
     WinSet, Transparent, % UI_ALPHA, ahk_id %UIHwnd%
 
     Gui, Ring:+AlwaysOnTop -Caption +ToolWindow +E0x80000 +OwnerUI +HwndhRing
-    Gui, Ring:Show, Hide x%RX% y%RY% w%RSIZE% h%RSIZE% NA
-    WinMove, ahk_id %hRing%, , %RX%, %RY%, %RSIZE%, %RSIZE%
-    if (startVisible)
-        Gui, Ring:Show, NA
-    else
-        Gui, Ring:Hide
+    Gui, Ring:Show, x%RX% y%RY% w%RSIZE% h%RSIZE% NA
 
     DllCall("LoadLibrary", "Str", "gdiplus")
     VarSetCapacity(si, A_PtrSize = 8 ? 24 : 16, 0)
@@ -589,11 +559,6 @@ AUI_DialogPoll:
     AUI_TopDialogs()
 return
 
-AUI_SearchChanged:
-    GuiControlGet, searchText, UI:, AUI_SearchEdit
-    SearchFeatureChanged(searchText)
-return
-
 RingClick(wParam, lParam, msg, hwnd) {
     global hRing, UIHwnd, hover, mode, tabUI, activeTab, listenEl, pickEl, pickOpen, dragCh, editField, uiTarget, inputEl, ddOpen, ddEl
     if (hwnd != hRing && hwnd != UIHwnd)
@@ -677,11 +642,6 @@ OpenTab(n) {
     activeTab := n
     scrollY := 0
     scrollT := 0
-    GuiControl, UI:Hide, AUI_SearchEdit
-    GuiControl, UI:Hide, AUI_SearchPlaceholder
-    GuiControl, UI:Hide, AUI_SearchLine
-    GuiControl, UI:Hide, AUI_SearchTail
-    GuiControl, UI:Hide, AUI_SearchHint
     DepSnap(n)
     mode := "tabin"
 }
@@ -697,57 +657,6 @@ CloseTab() {
     listenEl := 0
     dragCh := 0
     mode := "ringin"
-    GuiControl, UI:Show, AUI_SearchEdit
-    GuiControl, UI:Show, AUI_SearchPlaceholder
-    GuiControl, UI:Show, AUI_SearchLine
-    GuiControl, UI:Show, AUI_SearchTail
-    GuiControl, UI:Show, AUI_SearchHint
-}
-
-SearchFeatureChanged(text) {
-    global AUI_SearchText
-    text := Trim(text)
-    AUI_SearchText := text
-    if (text = "") {
-        GuiControl, UI:, AUI_SearchHint,
-        GuiControl, UI:Show, AUI_SearchPlaceholder
-        return
-    }
-    GuiControl, UI:Hide, AUI_SearchPlaceholder
-    if (StrLen(text) < 2) {
-        GuiControl, UI:, AUI_SearchHint, Type at least 2 characters
-        return
-    }
-
-    matches := []
-    SearchFeatureAdd(matches, "Player ESP", 1, text)
-    SearchFeatureAdd(matches, "Mob ESP", 1, text)
-    SearchFeatureAdd(matches, "Gank Ping Macro", 2, text)
-    SearchFeatureAdd(matches, "Debug", 4, text)
-    SearchFeatureAdd(matches, "Offsets", 4, text)
-    SearchFeatureAdd(matches, "Walkspeed", 5, text)
-    SearchFeatureAdd(matches, "Spectate", 5, text)
-    SearchFeatureAdd(matches, "Camlock", 5, text)
-    SearchFeatureAdd(matches, "Settings", 6, text)
-    if (matches.MaxIndex() = 1) {
-        openingHint := "Opening " . matches[1].name
-        GuiControl, UI:, AUI_SearchHint, %openingHint%
-        OpenTab(matches[1].tab)
-        return
-    }
-    if (!matches.MaxIndex()) {
-        GuiControl, UI:, AUI_SearchHint, No matching features
-        return
-    }
-    hint := ""
-    for i, item in matches
-        hint .= (i > 1 ? "  |  " : "") . item.name
-    GuiControl, UI:, AUI_SearchHint, %hint%
-}
-
-SearchFeatureAdd(ByRef matches, name, tab, query) {
-    if InStr(name, query)
-        matches.Push({name: name, tab: tab})
 }
 
 RingAction(n) {
@@ -894,7 +803,7 @@ DrawTab(c) {
 }
 
 DrawEl(el, idx) {
-    global rg, listenEl, ACC, ACC_DEEP, inputEl, blinkOn, ddEl, ddOpen, slEl, slText, slSel
+    global rg, listenEl, ACC_DEEP, inputEl, blinkOn, ddEl, ddOpen, slEl, slText, slSel
     t := el.type
     x := el.x
     y := el.y
@@ -908,22 +817,6 @@ DrawEl(el, idx) {
 
     } else if (t = "label") {
         DrawText(rg, el.label, x, y, w, h, 16, Col(0xD8, 0xFFFFFF), 0, 1)
-
-    } else if (t = "progress") {
-        io := RowIcon(el, x, y + 14)
-        DrawText(rg, el.label, x + io, y, w - io, 26, 17, white, 0, 1)
-        pct := Max(0, Min(100, el.value + 0))
-        pctText := pct . "%"
-        DrawText(rg, pctText, x, y, w, 26, 15, Col(0xD0, 0xFFFFFF), 2, 1)
-        barX := x + 8
-        barY := y + 33
-        barW := w - 16
-        barH := 10
-        FillRR(barX, barY, barW, barH, 5, Col(0x36, 0xFFFFFF))
-        fw := barW * pct / 100
-        if (fw > 1)
-            FillRR(barX, barY, fw, barH, Min(5, fw / 2), Col(0xE8, ACC))
-        StrokeRR(barX, barY, barW, barH, 5, Col(0x90, 0xFE0002), 1.2)
 
     } else if (t = "divider") {
         Ln(x, y + h / 2, x + w, y + h / 2, Col(0x70, 0xFE0002), 1.5)
@@ -1332,8 +1225,6 @@ ElemH(t) {
     if (t = "toggle" || t = "color" || t = "keybind" || t = "input" || t = "dropdown" || t = "multidropdown")
         return 40
     if (t = "slider")
-        return 58
-    if (t = "progress")
         return 58
 return 48
 }
@@ -2419,15 +2310,11 @@ uiTarget := 0
 }
 
 ShowOverlay() {
-    global visible, uiTarget, UIHwnd, mode, ringA, tabA
+    global visible, uiTarget, UIHwnd
     uiTarget := 1
     if (visible)
     return
 visible := true
-if (ringA <= 0 && mode = "ring") {
-    mode := "ringin"
-    tabA := 0
-}
 WinSet, Transparent, 0, ahk_id %UIHwnd%
 Gui, UI:Show
 Gui, Ring:Show, NA
