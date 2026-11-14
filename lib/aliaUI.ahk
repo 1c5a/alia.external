@@ -175,9 +175,16 @@ AUI_Init(opts := "") {
         }
     }
 
+    screenW := DllCall("GetSystemMetrics", "Int", 0)
+    screenH := DllCall("GetSystemMetrics", "Int", 1)
+    if (screenW <= 0)
+        screenW := A_ScreenWidth
+    if (screenH <= 0)
+        screenH := A_ScreenHeight
+
     RSIZE := Max((OUTER_R + EXPAND + LINE_W + 2) * 2, TAB_W + LINE_W * 2 + 8, TAB_H + LINE_W * 2 + 8)
-    RX := (A_ScreenWidth - RSIZE) // 2
-    RY := (A_ScreenHeight - RSIZE) // 2
+    RX := (screenW - RSIZE) // 2
+    RY := (screenH - RSIZE) // 2
     hover := 0
     visible := startVisible ? true : false
     uiA := startVisible ? 1 : 0
@@ -253,7 +260,7 @@ AUI_Init(opts := "") {
     Gui, UI:+AlwaysOnTop -Caption +ToolWindow +HwndUIHwnd
     Gui, UI:Color, 000000
     Gui, UI:Font, s10 cFFFFFF, Segoe UI
-    searchX := (A_ScreenWidth - 440) // 2
+    searchX := (screenW - 440) // 2
     tailX := searchX + 428
     searchHex := Format("{:06X}", acc & 0xFFFFFF)
     Gui, UI:Add, Edit, x%searchX% y12 w440 h30 -Border vAUI_SearchEdit gAUI_SearchChanged Background101018 cFFFFFF
@@ -264,7 +271,7 @@ AUI_Init(opts := "") {
     Gui, UI:Font, s10 cFFFFFF, Segoe UI
     Gui, UI:Add, Text, x%searchX% y48 w440 h22 vAUI_SearchHint +BackgroundTrans +E0x20 c90909C Center,
     if (startVisible)
-        Gui, UI:Show, x0 y0 w%A_ScreenWidth% h%A_ScreenHeight%
+        Gui, UI:Show, x0 y0 w%screenW% h%screenH%
     else
         Gui, UI:Hide
     EnableBlur(UIHwnd, 3)
