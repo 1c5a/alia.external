@@ -1,6 +1,6 @@
 SaveCamlockConfig() {
     global settingsFile, camlockHoldKey, camlockSmooth, camlockFovOn, camlockFovFill
-    global camlockFovAlpha, camlockFOV, camlockMaxDist, camlockHeadY
+    global camlockFovAlpha, camlockFOV, camlockMaxDist, camlockHeadY, camlockTargetPart
     v := camlockHoldKey
     IniWrite, %v%, %settingsFile%, keys, camlockhold
     v := Round(camlockSmooth * 100)
@@ -17,6 +17,8 @@ SaveCamlockConfig() {
     IniWrite, %v%, %settingsFile%, keys, camlockdist
     v := camlockHeadY
     IniWrite, %v%, %settingsFile%, keys, camlockheady
+    v := camlockTargetPart
+    IniWrite, %v%, %settingsFile%, keys, camlockpart
     SaveIniConfigToJson()
 }
 

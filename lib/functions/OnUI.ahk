@@ -2,7 +2,7 @@ OnUI(key, value, extra) {
     global ui, hwnd, espOn, shotOn, webhookUrl, msgText, embedColor, maxPlFallback, MAX_DIST
     global off_TextLabel_Text, off_DCV_Value, off_DCV_Max, settingsFile, espAccent
     global wsOn, wsMin, wsMax, off_Hum_MoveDir, dbgMobs, off_Attr_Name, off_WS_Camera
-    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockTarget, camlockHoldKey, camlockMaxDist, camlockFovOn, camlockFovFill, camlockFovAlpha
+    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockTarget, camlockHoldKey, camlockMaxDist, camlockFovOn, camlockFovFill, camlockFovAlpha, camlockTargetPart, camlockHoldLatched, camlockHoldPrev
 
     ; bound keys pressed in another program (menu closed) must not do anything
     if (!RegExMatch(key, "_(bind|alpha|color)$") && key != "togglekey" && IsBindFire(key) && !UiOpen() && !WinActive("ahk_id " hwnd)) {
@@ -19,6 +19,11 @@ OnUI(key, value, extra) {
     } else if (key = "camlockhold_bind") {
         camlockHoldKey := (value = "" || value = "None") ? "None" : value
         SaveCamlockConfig()
+    } else if (key = "camlockhold_mode") {
+        camlockHoldLatched := false
+        camlockHoldPrev := false
+        SaveAllUiConfig()
+        SaveIniConfigToJson()
     } else if (key = "playeresp") {
         espOn := value ? true : false
     } else if (key = "playerdist") {
@@ -78,6 +83,10 @@ OnUI(key, value, extra) {
         SaveCamlockConfig()
     } else if (key = "camlockheady") {
         camlockHeadY := value / 10
+        SaveCamlockConfig()
+    } else if (key = "camlockpart") {
+        camlockTargetPart := (value = 2 || value = "Head") ? "Head" : "HumanoidRootPart"
+        camlockTarget := ""
         SaveCamlockConfig()
     } else if (key = "webhook") {
         webhookUrl := Trim(value)

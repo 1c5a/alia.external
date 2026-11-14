@@ -21,6 +21,10 @@ SaveAllUiConfig() {
             } else
                 val := el.value
             IniWrite, %val%, %settingsFile%, ui, %cfgKey%
+            if (el.bind != "") {
+                mode := (el.mode = "toggle") ? "toggle" : "hold"
+                IniWrite, %mode%, %settingsFile%, ui, %cfgKey%_mode
+            }
         }
     }
 }

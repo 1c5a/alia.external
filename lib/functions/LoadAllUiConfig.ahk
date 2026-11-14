@@ -14,6 +14,11 @@ LoadAllUiConfig() {
             if (val = "__MISSING__")
                 continue
             ui.Set(el.key, val)
+            if (el.bind != "") {
+                IniRead, mode, %settingsFile%, ui, %cfgKey%_mode, __MISSING__
+                if (mode = "hold" || mode = "toggle")
+                    el.mode := mode
+            }
             if (t != "keybind" && el.key != "togglekey")
                 OnUI(el.key, ui.Get(el.key), "")
         }

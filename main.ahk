@@ -108,6 +108,8 @@ espOn := false
 camlockOn := false
 camlockKey := "XButton2"
 camlockHoldKey := "LButton"
+camlockHoldLatched := false
+camlockHoldPrev := false
 camlockSmooth := 0.20
 camlockFOV := 150
 camlockFovOn := true
@@ -116,6 +118,7 @@ camlockFovAlpha := 25
 camlockMaxDist := 1000
 camlockTarget := ""
 camlockHeadY := 1.5
+camlockTargetPart := "HumanoidRootPart"
 streamProof := false
 TARGET_PART := "HumanoidRootPart"
 gameId := 0
@@ -325,6 +328,7 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     IniRead, wantCamFovAlpha, %settingsFile%, keys, camlockfovalpha, 25
     IniRead, wantCamSmooth, %settingsFile%, keys, camlocksmooth, 20
     IniRead, wantCamHeadY, %settingsFile%, keys, camlockheady, 1.5
+    IniRead, wantCamPart, %settingsFile%, keys, camlockpart, HumanoidRootPart
     IniRead, webhookUrl, %settingsFile%, keys, webhook, %A_Space%
     IniRead, maxPlFallback, %settingsFile%, keys, maxplayers, 0
     webhookUrl := Trim(webhookUrl)
@@ -383,6 +387,7 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     camlockHeadY := IsNum(wantCamHeadY) ? wantCamHeadY + 0 : 1.5
     if (camlockHeadY < 0 || camlockHeadY > 5)
         camlockHeadY := 1.5
+    camlockTargetPart := (wantCamPart = "Head") ? "Head" : "HumanoidRootPart"
     ; no two actions on the same key (the later one becomes unbound)
     usedKeys := {}
     usedKeys[uiKey] := true

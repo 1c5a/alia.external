@@ -3,12 +3,25 @@ CamlockTick() {
     global off_Prim_Position, off_Hum_Health
     global players, localPrim, localTeam, TEAM_CHECK
     global ovX, ovY, ovW, ovH, hwnd
-    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockHoldKey, camlockMaxDist, camlockFovOn
-    global camlockTarget, ui
+    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockHoldKey, camlockMaxDist, camlockFovOn, camlockTargetPart
+    global camlockTarget, ui, camlockHoldLatched, camlockHoldPrev
 
     ; Camlock is active only when the toggle is enabled AND the configured
     ; hold key is physically down while Roblox is the foreground window.
-    holdDown := (camlockHoldKey != "" && camlockHoldKey != "None" && GetKeyState(camlockHoldKey, "P"))
+    physicalHold := (camlockHoldKey != "" && camlockHoldKey != "None" && GetKeyState(camlockHoldKey, "P"))
+    holdEl := ui.Find("camlockhold")
+    if (camlockHoldKey = "" || camlockHoldKey = "None") {
+        camlockHoldLatched := false
+        camlockHoldPrev := false
+    } else if (IsObject(holdEl) && holdEl.mode = "toggle") {
+        if (physicalHold && !camlockHoldPrev)
+            camlockHoldLatched := !camlockHoldLatched
+        holdDown := camlockHoldLatched
+    } else {
+        camlockHoldLatched := false
+        holdDown := physicalHold
+    }
+    camlockHoldPrev := physicalHold
     if (!camlockOn || !holdDown || !WinActive("ahk_id " hwnd)) {
         if (camlockTarget != "") {
             camlockTarget := ""
@@ -67,9 +80,14 @@ CamlockTick() {
             ex := 0
             ey := 0
             ez := 0
-            if !ReadVec3(hProc, pl.prim + off_Prim_Position, ex, ey, ez)
+            if (camlockTargetPart = "Head") {
+                if (pl.headPrim < 0x10000)
+                    break
+                aimPrim := pl.headPrim
+            } else
+                aimPrim := pl.prim
+            if !ReadVec3(hProc, aimPrim + off_Prim_Position, ex, ey, ez)
                 break
-            ey += camlockHeadY
             if !WorldToScreen(m, ex, ey, ez, ovW, ovH, bestSX, bestSY)
                 break
             bestName := pl.name
@@ -94,7 +112,13 @@ CamlockTick() {
             ex := 0
             ey := 0
             ez := 0
-            if !ReadVec3(hProc, pl.prim + off_Prim_Position, ex, ey, ez)
+            if (camlockTargetPart = "Head") {
+                if (pl.headPrim < 0x10000)
+                    continue
+                aimPrim := pl.headPrim
+            } else
+                aimPrim := pl.prim
+            if !ReadVec3(hProc, aimPrim + off_Prim_Position, ex, ey, ez)
                 continue
 
             distX := ex - localX
@@ -102,8 +126,6 @@ CamlockTick() {
             distZ := ez - localZ
             if (Sqrt(distX*distX + distY*distY + distZ*distZ) > camlockMaxDist)
                 continue
-
-            ey += camlockHeadY
 
             sx := 0
             sy := 0
@@ -138,14 +160,19 @@ CamlockTick() {
                 ex := 0
                 ey := 0
                 ez := 0
-                if !ReadVec3(hProc, pl.prim + off_Prim_Position, ex, ey, ez)
+                if (camlockTargetPart = "Head") {
+                    if (pl.headPrim < 0x10000)
+                        continue
+                    aimPrim := pl.headPrim
+                } else
+                    aimPrim := pl.prim
+                if !ReadVec3(hProc, aimPrim + off_Prim_Position, ex, ey, ez)
                     continue
                 distX := ex - localX
                 distY := ey - localY
                 distZ := ez - localZ
                 if (Sqrt(distX*distX + distY*distY + distZ*distZ) > camlockMaxDist)
                     continue
-                ey += camlockHeadY
                 sx := 0
                 sy := 0
                 if !WorldToScreen(m, ex, ey, ez, ovW, ovH, sx, sy)

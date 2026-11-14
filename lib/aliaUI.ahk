@@ -204,6 +204,7 @@ AUI_Init(opts := "") {
     ddEl := 0
     ddA := 0
     ddHover := 0
+    bindModeEl := 0
     dragCh := 0
     pkX := 0
     pkY := 0
@@ -560,7 +561,7 @@ AUI_DialogPoll:
 return
 
 RingClick(wParam, lParam, msg, hwnd) {
-    global hRing, UIHwnd, hover, mode, tabUI, activeTab, listenEl, pickEl, pickOpen, dragCh, editField, uiTarget, inputEl, ddOpen, ddEl
+    global hRing, UIHwnd, hover, mode, tabUI, activeTab, listenEl, pickEl, pickOpen, dragCh, editField, uiTarget, inputEl, ddOpen, ddEl, bindModeEl, needDraw
     if (hwnd != hRing && hwnd != UIHwnd)
         return
     if (!uiTarget)
@@ -576,6 +577,18 @@ RingClick(wParam, lParam, msg, hwnd) {
         }
         StopInput(true)
         StopSliderEdit(true)
+        if (bindModeEl) {
+            choice := BindModeHit(mx, my)
+            if (choice) {
+                el := tabUI[activeTab][bindModeEl]
+                el.mode := (choice = 1) ? "hold" : "toggle"
+                UIEvent(el.key . "_mode", el.mode, "")
+            }
+            bindModeEl := 0
+            needDraw := true
+            DrawRing()
+            return
+        }
         if (ddOpen) {
             o := DdHit(mx, my)
             if (o) {
@@ -629,7 +642,7 @@ RingClick(wParam, lParam, msg, hwnd) {
 }
 
 OpenTab(n) {
-    global mode, activeTab, pickOpen, pickEl, pickA, listenEl, ddOpen, ddEl, ddA, scrollY, scrollT
+    global mode, activeTab, pickOpen, pickEl, pickA, listenEl, ddOpen, ddEl, ddA, scrollY, scrollT, bindModeEl
     if (mode != "ring" && mode != "ringin")
         return
     pickOpen := 0
@@ -638,6 +651,7 @@ OpenTab(n) {
     ddOpen := 0
     ddEl := 0
     ddA := 0
+    bindModeEl := 0
     listenEl := 0
     activeTab := n
     scrollY := 0
@@ -800,6 +814,7 @@ DrawTab(c) {
     DrawPicker()
     colMul := 1
     DrawDropdownList()
+    DrawBindModePopup()
 }
 
 DrawEl(el, idx) {
@@ -1250,6 +1265,8 @@ LayoutTab(n) {
         el.flash := 0
         el.bdown := 0
         el.knob := el.value ? 1 : 0
+        if (el.bind != "" && el.mode = "")
+            el.mode := (t = "toggle") ? "toggle" : "hold"
         if (el.color != "" && el.alpha = "")
             el.alpha := 100
         if (t = "input") {
@@ -1777,7 +1794,7 @@ return 0
 }
 
 RingRClick(wParam, lParam, msg, hwnd) {
-    global hRing, UIHwnd, mode, uiTarget, pickOpen, ddOpen, slEl, slSel, needDraw
+    global hRing, UIHwnd, mode, uiTarget, pickOpen, ddOpen, slEl, slSel, needDraw, tabUI, activeTab, bindModeEl
     if (hwnd != hRing && hwnd != UIHwnd)
     return
 if (!uiTarget)
@@ -1787,6 +1804,16 @@ if (mode != "tab" && mode != "tabin")
 if (pickOpen || ddOpen)
     return
 MouseGetPos, mx, my
+idx := TabHit(mx, my)
+if (idx) {
+    el := tabUI[activeTab][idx]
+    if ((el.type = "keybind") || (el.type = "toggle" && el.bind != "")) {
+        bindModeEl := idx
+        needDraw := true
+        DrawRing()
+        return
+    }
+}
 idx := SliderValHit(mx, my)
 if (!idx) {
     StopSliderEdit(true)
@@ -1800,6 +1827,43 @@ if (slEl = idx) {
 }
 StartSliderEdit(idx)
 DrawRing()
+}
+
+BindModeRect(el, ByRef bx, ByRef by, ByRef bw, ByRef bh) {
+    global RSIZE, TAB_H
+    bw := 160
+    bh := 72
+    bx := el.x + el.w - bw
+    by := el.y + el.h + 6
+    if (by + bh > RSIZE / 2 + TAB_H / 2 - 8)
+        by := el.y - bh - 6
+}
+
+BindModeHit(mx, my) {
+    global tabUI, activeTab, bindModeEl, RX, RY
+    if (!bindModeEl)
+        return 0
+    el := tabUI[activeTab][bindModeEl]
+    BindModeRect(el, bx, by, bw, bh)
+    px := mx - RX
+    py := my - RY
+    if (px < bx || px > bx + bw || py < by || py > by + bh)
+        return 0
+    return (py < by + bh / 2) ? 1 : 2
+}
+
+DrawBindModePopup() {
+    global rg, tabUI, activeTab, bindModeEl, ACC
+    if (!bindModeEl)
+        return
+    el := tabUI[activeTab][bindModeEl]
+    BindModeRect(el, bx, by, bw, bh)
+    FillRR(bx, by, bw, bh, 10, Col(0xFC, 0xFE0004))
+    StrokeRR(bx, by, bw, bh, 10, Col(0xB0, 0xFE0002), 2)
+    selected := (el.mode = "hold") ? 1 : 2
+    FillRR(bx + 4, by + 4 + (selected - 1) * 32, bw - 8, 30, 7, Col(0x50, ACC))
+    DrawText(rg, "Hold", bx + 12, by + 4, bw - 24, 30, 15, Col(0xFF, 0xFFFFFF), 0, 1)
+    DrawText(rg, "Toggle", bx + 12, by + 36, bw - 24, 30, 15, Col(0xFF, 0xFFFFFF), 0, 1)
 }
 
 StartSliderEdit(idx) {
@@ -1981,9 +2045,12 @@ for n, list in tabUI {
         if (b = "" || b = "None")
             continue
         down := GetKeyState(b, "P") ? 1 : 0
-        if (down && !el.bdown && ElActive(el)) {
+        if (el.type = "toggle" && el.mode = "hold" && !down && el.bdown && ElActive(el)) {
+            el.value := 0
+            UIEvent(el.key, 0, b)
+        } else if (down && !el.bdown && ElActive(el)) {
             if (el.type = "toggle") {
-                el.value := !el.value
+                el.value := (el.mode = "hold") ? 1 : !el.value
                 UIEvent(el.key, el.value, "")
             } else {
                 el.flash := 1

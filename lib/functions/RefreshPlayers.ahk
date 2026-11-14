@@ -26,11 +26,14 @@ RefreshPlayers() {
             continue
         hum := 0
         hrp := 0
+        headPrim := 0
         stats := {}
         for _, c in GetChildren(hProc, pChar) {
             nm := ReadNameAt(hProc, c + off_Inst_NameCont)
             if (nm = TARGET_PART)
                 hrp := c
+            else if (nm = "Head")
+                headPrim := ReadPtr(hProc, c + off_Part_Primitive)
             else if (nm = "Humanoid")
                 hum := c
             else if (statNames.HasKey(nm))
@@ -55,7 +58,7 @@ RefreshPlayers() {
             if (SubStr(dispName, 1, 1) = "<")
                 dispName := ""
         }
-        newList.Push({name: ReadNameAt(hProc, pl + off_Inst_NameCont), disp: dispName, chr: pChar, hum: hum, prim: prim, team: ReadPtr(hProc, pl + off_Player_Team), stats: stats})
+        newList.Push({name: ReadNameAt(hProc, pl + off_Inst_NameCont), disp: dispName, chr: pChar, hum: hum, prim: prim, headPrim: headPrim, team: ReadPtr(hProc, pl + off_Player_Team), stats: stats})
     }
     players := newList
     localPrim := newLocalPrim
