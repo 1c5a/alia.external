@@ -3,7 +3,12 @@
 SetBatchLines, -1
 
 repoRaw := "https://raw.githubusercontent.com/1c5a/alia.external/main/"
-installDir := A_LocalAppData "\espahk"
+EnvGet, localAppData, LocalAppData
+if (localAppData = "") {
+    MsgBox, 16, esp.ahk updater, Could not locate the LocalAppData folder.
+    ExitApp
+}
+installDir := localAppData "\espahk"
 manifestUrl := repoRaw "manifest.json"
 manifestTmp := A_Temp "\espahk_manifest.json"
 versionFile := installDir "\version.txt"
