@@ -3,13 +3,14 @@
 SetBatchLines, -1
 
 repoRaw := "https://raw.githubusercontent.com/1c5a/alia.external/main/"
+cacheBust := A_Now . A_TickCount
 EnvGet, localAppData, LocalAppData
 if (localAppData = "") {
     MsgBox, 16, esp.ahk updater, Could not locate the LocalAppData folder.
     ExitApp
 }
 installDir := localAppData "\espahk"
-manifestUrl := repoRaw "manifest.json"
+manifestUrl := repoRaw "manifest.json?cb=" cacheBust
 manifestTmp := A_Temp "\espahk_manifest.json"
 versionFile := installDir "\version.txt"
 mainFile := installDir "\main.ahk"
@@ -101,6 +102,8 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
     if FileExist(versionFile)
         FileRead, localVersion, %versionFile%
     localVersion := Trim(localVersion)
+    installedLabel := (localVersion != "") ? localVersion : "none"
+    LoaderStatus("Manifest v" . remoteVersion . " | installed v" . installedLabel)
     if (remoteVersion = localVersion && FileExist(mainFile))
         return true
 
@@ -122,7 +125,8 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
         FileCreateDir, %dstDir%
         tmp := dst ".tmp"
         LoaderStatus("Downloading " rel)
-        UrlDownloadToFile, % repoRaw rel, %tmp%
+        fileUrl := repoRaw . rel . "?cb=" . A_Now . A_TickCount
+        UrlDownloadToFile, %fileUrl%, %tmp%
         if ErrorLevel
             return false
         FileMove, %tmp%, %dst%, 1
