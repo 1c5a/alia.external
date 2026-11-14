@@ -10,7 +10,8 @@ versionFile := installDir "\version.txt"
 mainFile := installDir "\main.ahk"
 configFile := installDir "\esp_settings.json"
 installMarker := installDir "\.loader-installed"
-bootstrap := !FileExist(installMarker) || !LoaderLibraryReady(A_ScriptDir "\lib\aliaUI.ahk")
+forceInstalled := InStr(DllCall("GetCommandLine", "Str"), "--esp-installed") > 0
+bootstrap := !forceInstalled && (!FileExist(installMarker) || !LoaderLibraryReady(A_ScriptDir "\lib\aliaUI.ahk"))
 
 if bootstrap {
     FileCreateDir, %installDir%
@@ -20,7 +21,7 @@ if bootstrap {
     }
     FileAppend, installed, %installMarker%, UTF-8
     q := Chr(34)
-    runCmd := q . A_AhkPath . q . " " . q . installDir . "\loader.ahk" . q
+    runCmd := q . A_AhkPath . q . " " . q . installDir . "\loader.ahk" . q . " --esp-installed"
     Run, %runCmd%, , UseErrorLevel
     ExitApp
 }
