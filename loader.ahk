@@ -4,7 +4,7 @@ SetBatchLines, -1
 DllCall("SetProcessDPIAware")
 
 repoRaw := "https://raw.githubusercontent.com/1c5a/alia.external/main/"
-cacheBust := A_Now . A_TickCount
+cacheBust := A_Now . A_TickCount . A_MSec
 EnvGet, localAppData, LocalAppData
 if (localAppData = "") {
     MsgBox, 16, alia updater, Could not locate the LocalAppData folder.
@@ -116,9 +116,8 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
         FileCreateDir, %dstDir%
         tmp := dst ".tmp"
         LoaderStatus("Downloading " . rel)
-        fileUrl := repoRaw . rel . "?cb=" . A_Now . A_TickCount
-        UrlDownloadToFile, %fileUrl%, %tmp%
-        if ErrorLevel {
+        fileUrl := repoRaw . rel . "?cb=" . A_Now . A_TickCount . A_MSec
+        if !LoaderFetchFile(fileUrl, tmp) {
             FileDelete, %tmp%
             return false
         }
@@ -135,14 +134,37 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
 }
 
 LoaderSelfUpdate(repoRaw) {
-    source := repoRaw . "loader.ahk?cb=" . A_Now . A_TickCount
+    source := repoRaw . "loader.ahk?cb=" . A_Now . A_TickCount . A_MSec
     tmp := A_ScriptFullPath . ".selfupdate.tmp"
     FileDelete, %tmp%
-    UrlDownloadToFile, %source%, %tmp%
-    if ErrorLevel
+    if !LoaderFetchFile(source, tmp)
         return false
     FileMove, %tmp%, %A_ScriptFullPath%, 1
     return !ErrorLevel
+}
+
+LoaderFetchFile(url, dst) {
+    http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+    if !IsObject(http)
+        return false
+    try {
+        http.Open("GET", url, false)
+        http.SetRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+        http.SetRequestHeader("Pragma", "no-cache")
+        http.SetRequestHeader("User-Agent", "alia-updater/2")
+        http.Send()
+        if (http.Status != 200)
+            return false
+        stream := ComObjCreate("ADODB.Stream")
+        stream.Type := 1
+        stream.Open()
+        stream.Write(http.ResponseBody)
+        stream.SaveToFile(dst, 2)
+        stream.Close()
+    } catch e {
+        return false
+    }
+    return FileExist(dst) ? true : false
 }
 
 LoaderFetchManifest(url, dst) {
