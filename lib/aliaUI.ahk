@@ -2419,11 +2419,15 @@ uiTarget := 0
 }
 
 ShowOverlay() {
-    global visible, uiTarget, UIHwnd
+    global visible, uiTarget, UIHwnd, mode, ringA, tabA
     uiTarget := 1
     if (visible)
     return
 visible := true
+if (ringA <= 0 && mode = "ring") {
+    mode := "ringin"
+    tabA := 0
+}
 WinSet, Transparent, 0, ahk_id %UIHwnd%
 Gui, UI:Show
 Gui, Ring:Show, NA
