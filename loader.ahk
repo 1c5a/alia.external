@@ -9,7 +9,7 @@ manifestTmp := A_Temp "\espahk_manifest.json"
 versionFile := installDir "\version.txt"
 mainFile := installDir "\main.ahk"
 configFile := installDir "\esp_settings.json"
-bootstrap := !FileExist(A_ScriptDir "\lib\aliaUI.ahk")
+bootstrap := (StrLower(A_ScriptDir) != StrLower(installDir)) || !LoaderLibraryReady(A_ScriptDir "\lib\aliaUI.ahk")
 
 if bootstrap {
     FileCreateDir, %installDir%
@@ -133,6 +133,13 @@ LoaderAccent(file) {
             return m1 + 0
     }
     return 0xFF69B4
+}
+
+LoaderLibraryReady(file) {
+    if !FileExist(file)
+        return false
+    FileRead, raw, %file%
+    return InStr(raw, "class AliaUI") && InStr(raw, "OpenTab(n)")
 }
 
 #Include *i %A_ScriptDir%\lib\aliaUI.ahk
