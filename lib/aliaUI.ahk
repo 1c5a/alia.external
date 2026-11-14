@@ -792,7 +792,7 @@ DrawTab(c) {
     FillRR(x, y, TAB_W, TAB_H, TAB_COR, Col(0x80, 0xFE0001))
     StrokeRR(x, y, TAB_W, TAB_H, TAB_COR, Col(0x90, 0xFE0002), LINE_W)
 
-    DrawText(rg, tabTitle[activeTab], x + 28, y + 14, TAB_W - 56, TITLE_H, 28, Col(0xFF, 0xFFFFFF), 0, 1)
+    DrawText(rg, tabTitle[activeTab], x + 28, y + 14, TAB_W - 56, TITLE_H, 28, Col(0xFF, 0xFFFFFF), 1, 1)
     Ln(x + 28, y + 70, x + TAB_W - 28, y + 70, Col(0x70, 0xFE0002), 1.5)
 
     clipX := x + 6
