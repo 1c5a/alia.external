@@ -89,8 +89,8 @@ LoaderProgress(value) {
 
 LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repoRaw) {
     global loaderUi
-    UrlDownloadToFile, %manifestUrl%, %manifestTmp%
-    if ErrorLevel
+    FileDelete, %manifestTmp%
+    if !LoaderFetchManifest(manifestUrl, manifestTmp)
         return false
     FileRead, manifest, %manifestTmp%
     if !RegExMatch(manifest, """version""\s*:\s*""([^""\\]+)""", mv)
@@ -137,6 +137,29 @@ LoaderDownload(manifestUrl, manifestTmp, installDir, versionFile, mainFile, repo
     FileDelete, %versionFile%
     FileAppend, %remoteVersion%, %versionFile%, UTF-8
     return true
+}
+
+LoaderFetchManifest(url, dst) {
+    http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+    if !IsObject(http)
+        return false
+    try {
+        http.Open("GET", url, false)
+        http.SetRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+        http.SetRequestHeader("Pragma", "no-cache")
+        http.SetRequestHeader("User-Agent", "espahk-updater/2")
+        http.Send()
+        if (http.Status != 200)
+            return false
+        raw := http.ResponseText
+    } catch e {
+        return false
+    }
+    if (raw = "")
+        return false
+    FileDelete, %dst%
+    FileAppend, %raw%, %dst%, UTF-8
+    return !ErrorLevel
 }
 
 LoaderAccent(file) {
