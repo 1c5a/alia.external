@@ -5,6 +5,9 @@ DllCall("SetProcessDPIAware")
 
 repoRaw := "https://raw.githubusercontent.com/1c5a/alia.external/main/"
 cacheBust := A_Now . A_TickCount . A_MSec
+commitRaw := ""
+if LoaderGetMainCommit(commitRaw)
+    repoRaw := "https://raw.githubusercontent.com/1c5a/alia.external/" . commitRaw . "/"
 EnvGet, localAppData, LocalAppData
 if (localAppData = "") {
     MsgBox, 16, alia updater, Could not locate the LocalAppData folder.
@@ -26,23 +29,22 @@ loaderReady := false
 if (showUi) {
     accent := LoaderAccent(configFile)
     accentHex := Format("{:06X}", accent & 0xFFFFFF)
-    Gui, Loader:New, +AlwaysOnTop +ToolWindow -MaximizeBox -MinimizeBox -Caption +HwndloaderHwnd, alia updater
+    Gui, Loader:New, +AlwaysOnTop +ToolWindow -MaximizeBox -MinimizeBox -Caption +Border, alia updater
     Gui, Loader:Color, 11111A
     Gui, Loader:Font, s11 c%accentHex%, Segoe UI
-    Gui, Loader:Add, Text, x28 y24 w564 h34 Center, alia
+    Gui, Loader:Add, Text, x28 y18 w390 h30, alia
     Gui, Loader:Font, s10 c%accentHex%, Segoe UI
-    Gui, Loader:Add, Text, x574 y24 w18 h28 gLoaderExit Center, x
-    Gui, Loader:Add, Text, x40 y66 w540 h2 Background%accentHex%
+    Gui, Loader:Add, Text, x474 y18 w18 h28 gLoaderExit Center, x
+    Gui, Loader:Add, Text, x28 y49 w460 h2 Background%accentHex%
     Gui, Loader:Font, s9 cD8D8E2, Segoe UI
-    Gui, Loader:Add, Text, vLoaderStatus x40 y86 w540 h26 Center, Checking for updates...
-    Gui, Loader:Add, Text, x40 y132 w540 h10 Background292936
-    Gui, Loader:Add, Text, vLoaderFill x40 y132 w1 h10 Background%accentHex%
-    Gui, Loader:Add, Text, vLoaderVersion x40 y158 w540 h20 c90909C Center,
+    Gui, Loader:Add, Text, vLoaderStatus x28 y68 w460 h24, Checking for updates...
+    Gui, Loader:Add, Text, x28 y104 w460 h10 Background292936
+    Gui, Loader:Add, Text, vLoaderFill x28 y104 w1 h10 Background%accentHex%
+    Gui, Loader:Add, Text, vLoaderVersion x28 y124 w460 h20 c90909C,
     Gui, Loader:Font, s9 cFFFFFF, Segoe UI
-    Gui, Loader:Add, Text, vLoaderLaunch x40 y210 w260 h38 Background242431 gLoaderLaunch Center, Launch
-    Gui, Loader:Add, Text, vLoaderClose x320 y210 w260 h38 Background242431 gLoaderExit Center, Close
-    Gui, Loader:Show, w620 h300, alia updater
-    WinSet, Region, 0-0 w620 h300 R32-32, ahk_id %loaderHwnd%
+    Gui, Loader:Add, Text, vLoaderLaunch x28 y164 w220 h34 Background242431 gLoaderLaunch Center, Launch
+    Gui, Loader:Add, Text, vLoaderClose x268 y164 w220 h34 Background242431 gLoaderExit Center, Close
+    Gui, Loader:Show, w516 h220, alia updater
 }
 
 FileCreateDir, %installDir%
@@ -94,7 +96,7 @@ LoaderProgress(value) {
     if (!showUi)
         return
     value := Max(0, Min(100, Round(value)))
-    width := Max(1, Round(540 * value / 100))
+    width := Max(1, Round(460 * value / 100))
     move := "w" . width
     GuiControl, Loader:Move, LoaderFill, %move%
 }
@@ -207,6 +209,29 @@ LoaderFetchManifest(url, dst) {
     FileDelete, %dst%
     FileAppend, %raw%, %dst%, UTF-8
     return !ErrorLevel
+}
+
+LoaderGetMainCommit(ByRef sha) {
+    http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+    if !IsObject(http)
+        return false
+    try {
+        http.Open("GET", "https://api.github.com/repos/1c5a/alia.external/commits/main?cb=" . A_Now . A_TickCount . A_MSec, false)
+        http.SetRequestHeader("Cache-Control", "no-cache, no-store, max-age=0")
+        http.SetRequestHeader("Pragma", "no-cache")
+        http.SetRequestHeader("User-Agent", "alia-updater/3")
+        http.Send()
+        if (http.Status != 200)
+            return false
+        raw := http.ResponseText
+    } catch e {
+        return false
+    }
+    if RegExMatch(raw, """sha""\s*:\s*""([0-9a-fA-F]{40})""", m) {
+        sha := m1
+        return true
+    }
+    return false
 }
 
 LoaderAccent(file) {
