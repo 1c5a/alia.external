@@ -3,7 +3,7 @@ CamlockTick() {
     global off_Prim_Position, off_Hum_Health
     global players, localPrim, localTeam, TEAM_CHECK
     global ovX, ovY, ovW, ovH, hwnd
-    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockHoldKey, camlockMaxDist, camlockFovOn, camlockTargetPart
+    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockHoldKey, camlockMaxDist, camlockFovOn, camlockTargetPart, camlockSticky
     global camlockTarget, ui, camlockHoldLatched, camlockHoldPrev
 
     ; Camlock is active only when the toggle is enabled AND the configured
@@ -216,7 +216,7 @@ CamlockTick() {
     tgtX := ovX + Round(bestSX)
     tgtY := ovY + Round(bestSY)
 
-    s := Max(0.0, Min(0.98, camlockSmooth))
+    s := camlockSticky ? 0.0 : Max(0.0, Min(0.98, camlockSmooth))
     newX := Round(curX + (tgtX - curX) * (1.0 - s))
     newY := Round(curY + (tgtY - curY) * (1.0 - s))
 
@@ -226,7 +226,7 @@ CamlockTick() {
     ; Large deviations are corrected immediately so fast target movement or
     ; manually pulling the cursor away cannot leave the lock visibly behind.
     ; Smaller corrections still use the selected smoothing value.
-    if (Abs(tgtX - curX) > 120 || Abs(tgtY - curY) > 120) {
+    if (camlockSticky || Abs(tgtX - curX) > 120 || Abs(tgtY - curY) > 120) {
         dX := tgtX - curX
         dY := tgtY - curY
     } else if (s > 0.001) {

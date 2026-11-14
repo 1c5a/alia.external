@@ -3,7 +3,7 @@ BuildAliaUi() {
     global espOn, shotOn, webhookUrl, msgText, embedColor, maxPlFallback, MAX_DIST, camlockMaxDist
     global off_TextLabel_Text, off_DCV_Value, off_DCV_Max, FADE_STEP
     global statItems, tagItems, fontNames, fontIdx
-    global camlockKey, camlockHoldKey, camlockFovOn, camlockFovFill, camlockFovAlpha, camlockTargetPart
+    global camlockKey, camlockHoldKey, camlockFovOn, camlockFovFill, camlockFovAlpha, camlockTargetPart, camlockSticky
 
     ui := new AliaUI({TAB_W: 700, TAB_H: 480, Accent: espAccent, ToggleKey: uiKey})
     embedInt := RegExMatch(embedColor, "^[0-9A-Fa-f]{6}$") ? _HexToInt(embedColor) : 0x7885FA
@@ -85,6 +85,7 @@ BuildAliaUi() {
     ui.Add(5, {type: "toggle", key: "camlockon", label: "Enable Camlock (cursor lock)", value: 0, bind: camlockKey, mode: "toggle"})
     ui.Add(5, {type: "keybind", key: "camlockhold", label: "Camlock hold key", bind: camlockHoldKey, mode: "hold", dep: "camlockon"})
     ui.Add(5, {type: "dropdown", key: "camlockpart", label: "Target part", items: ["HumanoidRootPart", "Head"], value: (camlockTargetPart = "Head") ? 2 : 1, dep: "camlockon"})
+    ui.Add(5, {type: "toggle", key: "camlocksticky", label: "Sticky target (hard lock)", value: camlockSticky ? 1 : 0, dep: "camlockon"})
     ui.Add(5, {type: "slider", key: "camlocksmooth", label: "Smoothing (0=fast, 100=slow)", lo: 0, hi: 100, step: 1, value: Round(camlockSmooth * 100), dep: "camlockon"})
     ui.Add(5, {type: "toggle", key: "camlockfovon", label: "Use FOV circle", value: camlockFovOn ? 1 : 0, dep: "camlockon"})
     ui.Add(5, {type: "slider", key: "camlockfov", label: "FOV radius (px)", lo: 10, hi: 600, step: 5, value: camlockFOV, dep: "camlockon,camlockfovon"})
