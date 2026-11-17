@@ -3,7 +3,7 @@ BuildAliaUi() {
     global espOn, shotOn, webhookUrl, msgText, embedColor, maxPlFallback, MAX_DIST, camlockMaxDist
     global off_TextLabel_Text, off_DCV_Value, off_DCV_Max, FADE_STEP
     global statItems, tagItems, fontNames, fontIdx
-    global camlockKey, camlockHoldKey, camlockFovOn, camlockFovFill, camlockFovAlpha, camlockTargetPart, camlockSticky
+    global camlockKey, camlockHoldKey, camlockFovOn, camlockFovFill, camlockFovAlpha, camlockTargetPart, camlockSticky, targetCursorOn
 
     ui := new AliaUI({TAB_W: 700, TAB_H: 480, Accent: espAccent, ToggleKey: uiKey})
     embedInt := RegExMatch(embedColor, "^[0-9A-Fa-f]{6}$") ? _HexToInt(embedColor) : 0x7885FA
@@ -83,8 +83,9 @@ BuildAliaUi() {
 
     ui.Add(5, {type: "header", label: "Camlock"})
     ui.Add(5, {type: "toggle", key: "camlockon", label: "Enable Camlock (cursor lock)", value: 0, bind: camlockKey, mode: "toggle"})
-    ui.Add(5, {type: "keybind", key: "camlockhold", label: "Camlock hold key", bind: camlockHoldKey, mode: "hold", dep: "camlockon"})
-    ui.Add(5, {type: "dropdown", key: "camlockpart", label: "Target part", items: ["HumanoidRootPart", "Head"], value: (camlockTargetPart = "Head") ? 2 : 1, dep: "camlockon"})
+    ui.Add(5, {type: "keybind", key: "camlockhold", label: "Target activation key", bind: camlockHoldKey, mode: "hold"})
+    ui.Add(5, {type: "dropdown", key: "camlockpart", label: "Target part", items: ["HumanoidRootPart", "Head"], value: (camlockTargetPart = "Head") ? 2 : 1})
+    ui.Add(5, {type: "toggle", key: "targetcursor", label: "Move cursor to target", value: targetCursorOn ? 1 : 0})
     ui.Add(5, {type: "toggle", key: "camlocksticky", label: "Sticky target (hard lock)", value: camlockSticky ? 1 : 0, dep: "camlockon"})
     ui.Add(5, {type: "slider", key: "camlocksmooth", label: "Smoothing (0=fast, 100=slow)", lo: 0, hi: 100, step: 1, value: Round(camlockSmooth * 100), dep: "camlockon"})
     ui.Add(5, {type: "toggle", key: "camlockfovon", label: "Use FOV circle", value: camlockFovOn ? 1 : 0, dep: "camlockon"})
@@ -93,7 +94,7 @@ BuildAliaUi() {
     ui.Add(5, {type: "slider", key: "camlockfovalpha", label: "FOV fill transparency", lo: 0, hi: 100, step: 5, value: camlockFovAlpha, suffix: "%", dep: "camlockon,camlockfovon,camlockfovfill"})
     ui.Add(5, {type: "slider", key: "camlockdist", label: "Max target distance (studs)", lo: 10, hi: 10000, step: 10, value: camlockMaxDist + 0, suffix: " studs", dep: "camlockon"})
     ui.Add(5, {type: "slider", key: "camlockheady", label: "Aim height above HRP", lo: 0, hi: 50, step: 1, value: Round(camlockHeadY * 10), suffix: "/10 wu", dep: "camlockon"})
-    ui.Add(5, {type: "label", key: "camlockstatus", label: "Target: none", dep: "camlockon"})
+    ui.Add(5, {type: "label", key: "camlockstatus", label: "Target: none"})
 
     ui.OnEvent(Func("OnUI"))
     ui.Start()

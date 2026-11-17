@@ -3,7 +3,7 @@ CamlockTick() {
     global off_Prim_Position, off_Hum_Health
     global players, localPrim, localTeam, TEAM_CHECK
     global ovX, ovY, ovW, ovH, hwnd
-    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockHoldKey, camlockMaxDist, camlockFovOn, camlockTargetPart, camlockSticky
+    global camlockOn, camlockSmooth, camlockFOV, camlockHeadY, camlockHoldKey, camlockMaxDist, camlockFovOn, camlockTargetPart, camlockSticky, targetCursorOn
     global camlockTarget, ui, camlockHoldLatched, camlockHoldPrev
 
     ; Camlock is active only when the toggle is enabled AND the configured
@@ -22,7 +22,7 @@ CamlockTick() {
         holdDown := physicalHold
     }
     camlockHoldPrev := physicalHold
-    if (!camlockOn || !holdDown || !WinActive("ahk_id " hwnd)) {
+    if ((!camlockOn && !targetCursorOn) || !holdDown || !WinActive("ahk_id " hwnd)) {
         if (camlockTarget != "") {
             camlockTarget := ""
             el := ui.Find("camlockstatus")
@@ -35,7 +35,7 @@ CamlockTick() {
         return
     }
 
-    ToolTip, % "camlock running / players: " . players.Length() . " / on: " . camlockOn
+    ToolTip, % "targeting / players: " . players.Length() . " / camlock: " . camlockOn . " / cursor: " . targetCursorOn
 
     ; --- read the current view matrix (same 64 bytes Render() uses) ---
     pVE := ReadPtr(hProc, dllBase + static_VisualEngine)
@@ -215,6 +215,11 @@ CamlockTick() {
 
     tgtX := ovX + Round(bestSX)
     tgtY := ovY + Round(bestSY)
+
+    if (targetCursorOn) {
+        DllCall("SetCursorPos", "Int", tgtX, "Int", tgtY)
+        return
+    }
 
     s := camlockSticky ? 0.0 : Max(0.0, Min(0.98, camlockSmooth))
     newX := Round(curX + (tgtX - curX) * (1.0 - s))
