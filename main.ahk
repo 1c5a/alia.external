@@ -128,7 +128,6 @@ profSection := "keys"
 profIsCustom := false
 off_DCV_Value := 0xB0
 off_DCV_Max := 0xA0
-; webhook info send: 0 = not found in the offsets dump yet
 off_TextLabel_Text := 0
 off_Hum_WalkSpeed := 0
 off_Hum_MoveDir := 0
@@ -151,6 +150,16 @@ specMouseSens := 0.003
 specLastMouseX := 0
 specLastMouseY := 0
 specMouseInit := false
+
+; ── silent aim globals ──────────────────────────────────────
+silentAimOn        := false
+silentAimInstalled := false
+saStubAddr         := 0
+saSharedCell       := 0
+saOrigGetCursorPos := 0
+saIATSlot          := 0
+; ────────────────────────────────────────────────────────────
+
 wsOn := false
 dbgMobs := false
 dbgOut := ""
@@ -183,7 +192,6 @@ statOn := {}
 sideBottom := []
 sideRight := []
 sideLeft := []
-; Player ESP settings read from the menu (SyncVisuals keeps these up to date)
 vBars := false
 vHpBar := false
 vHpW := 10
@@ -214,14 +222,13 @@ mobDistMax := 1000
 off_Player_DisplayName := 0
 statItems := ["Armor", "Blood", "Sanity", "Stomach", "Tempo", "Water", "Posture"]
 tagItems := ["Username", "Display Name", "Health Percentage", "Cur. HP / Max HP", "Distance"]
-; per-game stat meters: name = child of the Character, label = UI text, color = BGR
-AddStat(1359573625, "Armor", "Armor", 0xA0A0A0)
-AddStat(1359573625, "Blood", "Blood", 0x2828DC)
-AddStat(1359573625, "Sanity", "Sanity", 0xDC50B4)
-AddStat(1359573625, "Stomach", "Stomach", 0x28A0FF)
-AddStat(1359573625, "Tempo", "Tempo", 0x50E6FF)
-AddStat(1359573625, "Water", "Water", 0xFF963C)
-AddStat(1359573625, "BreakMeter", "Posture", 0xFFFFFF)
+AddStat(1359573625, "Armor",       "Armor",   0xA0A0A0)
+AddStat(1359573625, "Blood",       "Blood",   0x2828DC)
+AddStat(1359573625, "Sanity",      "Sanity",  0xDC50B4)
+AddStat(1359573625, "Stomach",     "Stomach", 0x28A0FF)
+AddStat(1359573625, "Tempo",       "Tempo",   0x50E6FF)
+AddStat(1359573625, "Water",       "Water",   0xFF963C)
+AddStat(1359573625, "BreakMeter",  "Posture", 0xFFFFFF)
 jsonSettingsFile := appDir "\esp_settings.json"
 legacySettingsFile := appDir "\esp_settings.ini"
 settingsFile := appDir "\esp_settings_runtime.ini"
@@ -346,7 +353,7 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     if (off_TextLabel_Text < 0x10 && IsNum(manualTextOff) && manualTextOff + 0 >= 0x10)
         off_TextLabel_Text := manualTextOff + 0
     if (off_TextLabel_Text < 0x10)
-        off_TextLabel_Text := 0xE38 ; built-in default (GuiObject::Text, dump version-9ac8595712b447a7)
+        off_TextLabel_Text := 0xE38
     if (off_Inst_AttrContainer < 0x10)
         off_Inst_AttrContainer := 0x48
     if (off_Inst_AttrList < 0x10)
@@ -394,7 +401,6 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     camlockTargetPart := (wantCamPart = "Head") ? "Head" : "HumanoidRootPart"
     camlockSticky := (wantCamSticky = "1")
     targetCursorOn := (wantTargetCursor = "1")
-    ; no two actions on the same key (the later one becomes unbound)
     usedKeys := {}
     usedKeys[uiKey] := true
     for _, nm in ["wantT", "wantWH"] {
@@ -449,9 +455,6 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     espKey := wantT
     hookKey := wantWH
 
-    ; ============================================================
-    ;  Settings menu (Alia ring UI) - library is downloaded to .\lib on first run
-    ; ============================================================
     IniRead, _accRaw, %settingsFile%, keys, accent, 16738740
     espAccent := IsNum(_accRaw) ? (_accRaw + 0) : 0xFF69B4
     if (espAccent < 0 || espAccent > 0xFFFFFF)
@@ -469,6 +472,7 @@ OFFSETS_URL := (localHash != "") ? "https://offsets.imtheo.lol/" localHash "/off
     SetTimer, RefreshTick, 2000
     DllCall("winmm\timeBeginPeriod", "UInt", 1)
     SetTimer, WalkTimer, 8
+    SetTimer, SilentAimTimer, 8
     SetTimer, SpecTimer, 50
     SetTimer, CamlockTimer, 8
     SetTimer, ConfigSync, 1000
@@ -497,6 +501,10 @@ return
 
 WalkTimer:
     WalkTick()
+return
+
+SilentAimTimer:
+    SilentAimTick()
 return
 
 SpecTimer:
@@ -570,6 +578,7 @@ HideTip:
 return
 
 Cleanup:
+    SilentAimUninstall()
     SaveAllUiConfig()
     SaveCamlockConfig()
     SaveIniConfigToJson()
@@ -577,6 +586,7 @@ Cleanup:
     SetTimer, RenderTick, Off
     SetTimer, RefreshTick, Off
     SetTimer, WalkTimer, Off
+    SetTimer, SilentAimTimer, Off
     SetTimer, SpecTimer, Off
     SetTimer, CamlockTimer, Off
     SetTimer, ConfigSync, Off
@@ -609,10 +619,10 @@ Cleanup:
     DllCall("CloseHandle", "Ptr", hProc)
 ExitApp
 
-; mobs: children of Workspace.Live whose name starts with "." and that have a Humanoid
-
 #Include *i %A_ScriptDir%\lib\config.ahk
 #Include *i %A_ScriptDir%\lib\functions\RefreshMobs.ahk
+#Include *i %A_ScriptDir%\lib\functions\SilentAim.ahk
+#Include *i %A_ScriptDir%\lib\functions\SilentAimTick.ahk
 #Include *i %A_ScriptDir%\lib\functions\SyncVisuals.ahk
 #Include *i %A_ScriptDir%\lib\functions\MultiNames.ahk
 #Include *i %A_ScriptDir%\lib\functions\DbgRaw.ahk

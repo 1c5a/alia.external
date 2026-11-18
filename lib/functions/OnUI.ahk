@@ -136,6 +136,28 @@ OnUI(key, value, extra) {
             IniWrite, %off_DCV_Value%, %settingsFile%, keys, dcvvalue
             IniWrite, %off_DCV_Max%, %settingsFile%, keys, dcvmax
         }
+    } else if (key = "silentaimon") {
+        silentAimOn := value ? true : false
+        SaveAllUiConfig()
+    } else if (key = "silentaimkey_bind") {
+        silentAimKey := (value = "" || value = "None") ? "LButton" : value
+        SaveAllUiConfig()
+    } else if (key = "silentaimpart") {
+        silentAimPart := (value = 2 || value = "Head") ? "Head" : "HumanoidRootPart"
+        SaveAllUiConfig()
+    } else if (key = "silentaimfovon") {
+        silentAimFOV := value ? (ui.Get("silentaimfov") + 0) : 0
+        SaveAllUiConfig()
+    } else if (key = "silentaimfov") {
+        if ui.Get("silentaimfovon")
+            silentAimFOV := Round(value + 0)
+        SaveAllUiConfig()
+    } else if (key = "silentaimheady") {
+        silentAimHeadY := (value + 0) / 10
+        SaveAllUiConfig()
+    } else if (key = "silentaimdist") {
+        silentAimMaxDist := Round(value + 0)
+        SaveAllUiConfig()
     } else if (key = "specwin") {
         Defer("ShowSpecWindow")
     } else if (key = "spectbtns") {

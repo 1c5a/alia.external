@@ -81,6 +81,15 @@ BuildAliaUi() {
     ui.Add(5, {type: "button", key: "specwin", label: "Open player list (click to spectate)"})
     ui.Add(5, {type: "buttons", key: "spectbtns", items: ["Previous", "Next", "Stop"]})
 
+    ui.Add(5, {type: "header", label: "Silent Aim"})
+    ui.Add(5, {type: "toggle", key: "silentaimon", label: "Enable Silent Aim", value: 0, bind: "None"})
+    ui.Add(5, {type: "keybind", key: "silentaimkey", label: "Activation key", bind: "LButton", dep: "silentaimon"})
+    ui.Add(5, {type: "dropdown", key: "silentaimpart", label: "Target part", items: ["HumanoidRootPart", "Head"], value: 1, dep: "silentaimon"})
+    ui.Add(5, {type: "toggle", key: "silentaimfovon", label: "Use FOV limit", value: 0, dep: "silentaimon"})
+    ui.Add(5, {type: "slider", key: "silentaimfov", label: "FOV radius (px)", lo: 10, hi: 600, step: 5, value: 150, suffix: "px", dep: "silentaimon,silentaimfovon"})
+    ui.Add(5, {type: "slider", key: "silentaimheady", label: "Aim height above part", lo: 0, hi: 50, step: 1, value: 15, suffix: "/10 wu", dep: "silentaimon"})
+    ui.Add(5, {type: "slider", key: "silentaimdist", label: "Max distance (studs)", lo: 10, hi: 10000, step: 10, value: 1000, suffix: " studs", dep: "silentaimon"})
+
     ui.Add(5, {type: "header", label: "Camlock"})
     ui.Add(5, {type: "toggle", key: "camlockon", label: "Enable Camlock (cursor lock)", value: 0, bind: camlockKey, mode: "toggle"})
     ui.Add(5, {type: "keybind", key: "camlockhold", label: "Target activation key", bind: camlockHoldKey, mode: "hold"})

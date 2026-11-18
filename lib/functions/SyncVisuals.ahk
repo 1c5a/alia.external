@@ -2,6 +2,7 @@ SyncVisuals() {
     global mobOn, mobHp, mobHpW, mobText, mobTextBGR, mobTextSize, mobDistMax
     global ui, espOn, vBars, vHpBar, vHpW, vText, vTextBGR, vTextSize, vBoxBGR, vBoxAlpha, brushBox
     global tagUser, tagDisp, tagHpPct, tagHpCur, tagDist, statItems, tagItems, statOn, GameDefs, gameId
+    global silentAimOn, silentAimKey, silentAimFOV, silentAimPart, silentAimHeadY, silentAimMaxDist
     if !IsObject(ui)
         return
     espOn := ui.Get("playeresp") ? true : false
@@ -64,6 +65,16 @@ SyncVisuals() {
             statOn[d.name] := selB.HasKey(d.label) ? true : false
     }
     BuildGameStats()
+
+    ; --- Silent Aim ---
+    silentAimOn   := ui.Get("silentaimon") ? true : false
+    saKey := ui.Get("silentaimkey")
+    silentAimKey  := (saKey = "" || saKey = "None") ? "LButton" : saKey
+    silentAimPart := (ui.Get("silentaimpart") = 2) ? "Head" : "HumanoidRootPart"
+    fovOn := ui.Get("silentaimfovon")
+    silentAimFOV  := fovOn ? Round(ui.Get("silentaimfov") + 0) : 0
+    silentAimHeadY   := (ui.Get("silentaimheady") + 0) / 10
+    silentAimMaxDist := Round(ui.Get("silentaimdist") + 0)
 }
 
 ; a multi-select value can come back as a list/object, a "A, B" or "1,3" string, "None", or a bitmask number.
