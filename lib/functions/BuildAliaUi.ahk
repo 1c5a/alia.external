@@ -5,7 +5,7 @@ BuildAliaUi() {
     global statItems, tagItems, fontNames, fontIdx
     global camlockKey, camlockHoldKey, camlockFovOn, camlockFovFill, camlockFovAlpha, camlockTargetPart, camlockSticky, targetCursorOn
 
-    ui := new AliaUI({TAB_W: 700, TAB_H: 480, Accent: espAccent, ToggleKey: uiKey})
+    ui := new AliaUI({TAB_W: 700, TAB_H: 480, Accent: espAccent, ToggleKey: uiKey, StartVisible: false})
     embedInt := RegExMatch(embedColor, "^[0-9A-Fa-f]{6}$") ? _HexToInt(embedColor) : 0x7885FA
     pd := MAX_DIST
     if (pd < 100)
@@ -116,7 +116,6 @@ BuildAliaUi() {
 
     SyncVisuals()
     UpdateUI()
-    ui.Hide()
 }
 
 ; the menu is open (or fading) - the ESP keeps drawing while it is
